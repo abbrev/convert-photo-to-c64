@@ -196,11 +196,24 @@ int main(int argc, char *argv[])
 	Image output = image;
 	output.blocks = malloc(output.width * output.height * sizeof *output.blocks);
 
-	static const Color all_colors[4] = {
-		{  0,  0,  0},
-		{ 85, 85, 85},
-		{170,170,170},
-		{255,255,255},
+	#define NUM_COLORS 16
+	static const Color all_colors[NUM_COLORS] = {
+		{  0,   0,   0},/* 0       black	*/
+		{255, 255, 255},/* 1       white	*/
+		{116,  67,  53},/* 2       red		*/
+		{124, 172, 186},/* 3       cyan		*/
+		{123,  72, 144},/* 4       purple 	*/
+		{100, 151,  79},/* 5       green	*/
+		{ 64,  50, 133},/* 6       blue		*/
+		{191, 205, 122},/* 7       yellow	*/
+		{123,  91,  47},/* 8       orange	*/
+		{ 79,  69,   0},/* 9       brown	*/
+		{163, 114, 101},/* A light red		*/
+		{ 80,  80,  80},/* B  dark grey		*/
+		{120, 120, 120},/* C       grey		*/
+		{164, 215, 142},/* D light green	*/
+		{120, 106, 189},/* E light blue		*/
+		{159, 159, 159},/* F light grey		*/
 	};
 
 	Color colors[2];
@@ -211,8 +224,8 @@ int main(int argc, char *argv[])
 			long best_score = LONG_MAX;
 			int best_color0ix = 0;
 			int best_color1ix = 1;
-			for (int color0ix = 0; color0ix < 4 - 1; ++color0ix) {
-				for (int color1ix = color0ix + 1; color1ix < 4; ++color1ix) {
+			for (int color0ix = 0; color0ix < NUM_COLORS - 1; ++color0ix) {
+				for (int color1ix = color0ix + 1; color1ix < NUM_COLORS; ++color1ix) {
 					colors[0] = all_colors[color0ix];
 					colors[1] = all_colors[color1ix];
 					
