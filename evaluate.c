@@ -2,8 +2,19 @@
 
 #include "evaluate.h"
 
-long evaluate_pixel(const Block *src, const Block *gen, int x, int y)
+long evaluate_color(const Color *src, const Color *gen)
 {
+	return ((long)src->r - gen->r) * ((long)src->r - gen->r) +
+	       ((long)src->g - gen->g) * ((long)src->g - gen->g) +
+	       ((long)src->b - gen->b) * ((long)src->b - gen->b);
+}
+
+// evaluate a single pixel
+long evaluate_single_pixel(const Block *src, const Block *gen, int x, int y)
+{
+	if (x < 0 || 8 <= x ||
+	    y < 0 || 8 <= y) return 0;
+
 	const Color *srcColor = &src->pixels[y][x];
 
 	// compute weighted average color using neighboring pixels
@@ -45,9 +56,20 @@ long evaluate_pixel(const Block *src, const Block *gen, int x, int y)
 		bsum / weightsum,
 	};
 
-	return ((long)srcColor->r - avgColor.r) * ((long)srcColor->r - avgColor.r) +
-	       ((long)srcColor->g - avgColor.g) * ((long)srcColor->g - avgColor.g) +
-	       ((long)srcColor->b - avgColor.b) * ((long)srcColor->b - avgColor.b);
+	return evaluate_color(srcColor, &avgColor);
+}
+
+// evaluate a pixel and its neighbors that are affected by it
+// apparently this doesn't work very well....
+long evaluate_pixel(const Block *src, const Block *gen, int x, int y)
+{
+	long score = 0;
+	for (int yy = -1; yy <= 1; ++yy) {
+		for (int xx = -1; xx <= 1; ++xx) {
+			score += evaluate_single_pixel(src, gen, x+xx, y+yy);
+		}
+	}
+	return score;
 }
 
 long evaluate(const Block *src, const Block *gen)
@@ -55,7 +77,7 @@ long evaluate(const Block *src, const Block *gen)
 	long error = 0;
 	for (int y = 0; y < 8; ++y) {
 		for (int x = 0; x < 8; ++x) {
-			error += evaluate_pixel(src, gen, x, y);
+			error += evaluate_single_pixel(src, gen, x, y);
 		}
 	}
 	return error;

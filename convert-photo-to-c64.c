@@ -236,14 +236,19 @@ int main(int argc, char *argv[])
 					colors[0] = all_colors[color0ix];
 					colors[1] = all_colors[color1ix];
 					
-					long score = generate(&BLOCKAT(x, y, &image), colors, &BLOCKAT(x, y, &output));
+					generate(&BLOCKAT(x, y, &image), colors, &BLOCKAT(x, y, &output));
+					long score = evaluate(&BLOCKAT(x, y, &image), &BLOCKAT(x, y, &output));
 					if (score < best_score) {
 						best_score = score;
 						best_color0ix = color0ix;
 						best_color1ix = color1ix;
+						if (score == 0) {
+							goto perfect;
+						}
 					}
 				}
 			}
+perfect:
 			colors[0] = all_colors[best_color0ix];
 			colors[1] = all_colors[best_color1ix];
 			generate(&BLOCKAT(x, y, &image), colors, &BLOCKAT(x, y, &output));

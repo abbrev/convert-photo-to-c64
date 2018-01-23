@@ -3,6 +3,6 @@
 
 #include "block.h"
 
-long generate(const Block *src, const Color colors[2], Block *gen);
+void generate(const Block *src, const Color colors[2], Block *gen);
 
 #endif
