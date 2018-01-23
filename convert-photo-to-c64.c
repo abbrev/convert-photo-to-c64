@@ -169,6 +169,7 @@ static void save_image(FILE *pamfile, const Image *image)
 
 int main(int argc, char *argv[])
 {
+	srand(time(NULL));
 	pnm_init(&argc, argv);
 
 	Image image;
@@ -226,8 +227,9 @@ int main(int argc, char *argv[])
 	Color colors[2];
 
 	for (int y = 0; y < output.height; ++y) {
-		fprintf(stderr, "\r%d%%", (100 * y + output.height / 2) / output.height);
+		//fprintf(stderr, "\r%d%%", (100 * y + output.height / 2) / output.height);
 		for (int x = 0; x < output.width; ++x) {
+			fprintf(stderr, "\r%.2f%%", 100.0 * (y * output.width + x) / (output.height * output.width));
 			long best_score = LONG_MAX;
 			int best_color0ix = 0;
 			int best_color1ix = 1;
@@ -254,7 +256,7 @@ perfect:
 			generate(&BLOCKAT(x, y, &image), colors, &BLOCKAT(x, y, &output));
 		}
 	}
-	fprintf(stderr, "\r%d%%", 100);
+	fprintf(stderr, "\r%.2f%%", 100.0);
 	fprintf(stderr, "\n");
 
 	//fprintf(stderr, "%s (%d)\n", __FILE__, __LINE__);
