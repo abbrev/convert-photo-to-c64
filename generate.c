@@ -32,23 +32,53 @@ perfect:
 
 #define GENETIC_RUNS 3
 
+typedef struct {
+	uint8_t x, y;
+} Coord;
+
+static void generate_shuffled_coords(Coord coords[8*8*GENETIC_RUNS])
+{
+	Coord *coord = coords;
+
+	for (int i = 0; i < GENETIC_RUNS; ++i) {
+		for (int y = 0; y < 8; ++y) {
+			for (int x = 0; x < 8; ++x) {
+				*coord++ = (Coord){x,y};
+			}
+		}
+	}
+
+	// shuffle the coordinates
+	for (int i = 8*8*GENETIC_RUNS-1; i > 0; --i) {
+		int j = (unsigned long long)rand() * (i+1) / RAND_MAX;
+		Coord c   = coords[i];
+		coords[i] = coords[j];
+		coords[j] = c;
+	}
+}
+
 /*
  * Genetically refine a block.
  */
 static void refine_genetically(const Block *src, const Color colors[2], Block *gen)
 {
-	for (int i = 0; i < GENETIC_RUNS * 64; ++i) {
-		int x = rand()%8;
-		int y = rand()%8;
-		refine_pixel_genetically(src, colors, gen, x, y);
+	static bool shuffle_initialized = false;
+	static Coord coords[8*8*GENETIC_RUNS];
+
+	if (!shuffle_initialized
+#if 1
+	    // use on-the-fly shuffled coordinates
+	    // without this, blocks tend to have repeating patterns
+
+	    || true
+#endif
+	   ) {
+		generate_shuffled_coords(coords);
+		shuffle_initialized = true;
 	}
 
-	for (int i = 0; i < 1; ++i) {
-		for (int y = 0; y < 8; ++y) {
-			for (int x = 0; x < 8; ++x) {
-				refine_pixel_genetically(src, colors, gen, x, y);
-			}
-		}
+	for (int i = 0; i < 8*8*GENETIC_RUNS; ++i) {
+		refine_pixel_genetically(src, colors, gen, coords[i].x, coords[i].y);
 	}
 }
 
