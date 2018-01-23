@@ -8,39 +8,47 @@
 /*
  * Refine one pixel to maximize the score for the whole block.
  */
-static void refine_pixel_genetically(const Block *src, const Color colors[2], Block *gen, int x, int y)
+static bool refine_pixel_genetically(const Block *src, const Color colors[2], Block *gen, int x, int y)
 {
-	gen->pixels[y][x] = colors[0];
+	bool change = false;
 
-	int best_color = 0;
+	Color best_color = gen->pixels[y][x];
 	long best_score = evaluate_pixel(src, gen, x, y);
 	for (int i = 0; i < 2; ++i) {
+		if (best_score == 0) {
+			goto perfect;
+		}
+		if (colors[i].r == best_color.r &&
+		    colors[i].g == best_color.g &&
+		    colors[i].b == best_color.b) {
+			continue;
+		}
 		gen->pixels[y][x] = colors[i];
 		long score = evaluate_pixel(src, gen, x, y);
 		if (score < best_score) {
 			best_score = score;
-			best_color = i;
-			if (score == 0) {
-				goto perfect;
-			}
+			best_color = colors[i];
+			change = true;
 		}
 	}
 
+	gen->pixels[y][x] = best_color;
 perfect:
-	gen->pixels[y][x] = colors[best_color];
+	return change;
 }
-
-#define GENETIC_RUNS 3
 
 typedef struct {
 	uint8_t x, y;
 } Coord;
 
-static void generate_shuffled_coords(Coord coords[8*8*GENETIC_RUNS])
+static const Coord *get_shuffled_coords(void)
 {
-	Coord *coord = coords;
+	static Coord coords[8*8];
+	static bool initialized = false;
 
-	for (int i = 0; i < GENETIC_RUNS; ++i) {
+	if (!initialized) {
+		Coord *coord = coords;
+
 		for (int y = 0; y < 8; ++y) {
 			for (int x = 0; x < 8; ++x) {
 				*coord++ = (Coord){x,y};
@@ -48,37 +56,53 @@ static void generate_shuffled_coords(Coord coords[8*8*GENETIC_RUNS])
 		}
 	}
 
-	// shuffle the coordinates
-	for (int i = 8*8*GENETIC_RUNS-1; i > 0; --i) {
+	// shuffle the coords
+	for (int i = 8*8-1; i > 0; --i) {
 		int j = (unsigned long long)rand() * (i+1) / RAND_MAX;
 		Coord c   = coords[i];
 		coords[i] = coords[j];
 		coords[j] = c;
 	}
+	return coords;
 }
+
+// Do up to this many genetic runs.
+#define GENETIC_RUNS 1000
+
+// If this many consecutive genetic runs yields an unchanging block, return early.
+#define MIN_CONSTANT_GENETIC_RUNS 3
 
 /*
  * Genetically refine a block.
  */
 static void refine_genetically(const Block *src, const Color colors[2], Block *gen)
 {
-	static bool shuffle_initialized = false;
-	static Coord coords[8*8*GENETIC_RUNS];
+	int last_change = 0;
 
-	if (!shuffle_initialized
+	for (int i = 0; i < GENETIC_RUNS; ++i) {
+		const Coord *coords = get_shuffled_coords();
+
+		for (int j = 0; j < 8*8; ++j) {
+			if (refine_pixel_genetically(src, colors, gen, coords[j].x, coords[j].y)) {
+				last_change = i;
+			}
+		}
 #if 1
-	    // use on-the-fly shuffled coordinates
-	    // without this, blocks tend to have repeating patterns
-
-	    || true
+		// If no changes in a few runs, abort and say it's good.
+		if (i - last_change >= MIN_CONSTANT_GENETIC_RUNS) {
+#if 0
+			if (i >= 10) {
+				fprintf(stderr, "made it to %d iterations before no change\n", i+1);
+			}
 #endif
-	   ) {
-		generate_shuffled_coords(coords);
-		shuffle_initialized = true;
-	}
-
-	for (int i = 0; i < 8*8*GENETIC_RUNS; ++i) {
-		refine_pixel_genetically(src, colors, gen, coords[i].x, coords[i].y);
+			break;
+		}
+#if 0
+		if (i == GENETIC_RUNS-1) {
+			fprintf(stderr, "made it all the way to %d iterations\n", i+1);
+		}
+#endif
+#endif
 	}
 }
 
@@ -100,6 +124,7 @@ static void generate_with_dither(const Block *src, const Color colors[2], Block 
  */
 void generate(const Block *src, const Color colors[2], Block *gen)
 {
+	// fill with nearest colors (no dithering)
 	bool perfect_score = true;
 	for (int y = 0; y < 8; ++y) {
 		for (int x = 0; x < 8; ++x) {
