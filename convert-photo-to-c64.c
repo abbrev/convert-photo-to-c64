@@ -197,7 +197,7 @@ int main(int argc, char *argv[])
 	output.blocks = malloc(output.width * output.height * sizeof *output.blocks);
 
 	#define NUM_COLORS 16
-	static const Color all_colors[NUM_COLORS] = {
+	Color all_colors[NUM_COLORS] = {
 		{  0,   0,   0},/* 0       black	*/
 		{255, 255, 255},/* 1       white	*/
 		{116,  67,  53},/* 2       red		*/
@@ -215,6 +215,13 @@ int main(int argc, char *argv[])
 		{120, 106, 189},/* E light blue		*/
 		{159, 159, 159},/* F light grey		*/
 	};
+
+	// Colors are gamma corrected. Make them linear.
+	for (int i = 0; i < NUM_COLORS; ++i) {
+		all_colors[i].r = 255 * pow(all_colors[i].r / 255.0, 2.2);
+		all_colors[i].g = 255 * pow(all_colors[i].g / 255.0, 2.2);
+		all_colors[i].b = 255 * pow(all_colors[i].b / 255.0, 2.2);
+	}
 
 	Color colors[2];
 
