@@ -1,16 +1,24 @@
 #include <stdio.h>
+#include <stdbool.h>
+#include <math.h>
 
 #include "evaluate.h"
 
-long evaluate_color(const Color *src, const Color *gen)
+// gamma-corrected values (for sRGB) (e.g., 128 => 0.21586, 188 => 0.50289, 255 => 1.00000 etc)
+static double srgb[256];
+
+// linear RGB
+static double rgb[256];
+
+double evaluate_color(const Color *src, const Color *gen)
 {
-	return ((long)src->r - gen->r) * ((long)src->r - gen->r) +
-	       ((long)src->g - gen->g) * ((long)src->g - gen->g) +
-	       ((long)src->b - gen->b) * ((long)src->b - gen->b);
+	return (srgb[src->r] - rgb[gen->r]) * (srgb[src->r] - rgb[gen->r]) +
+	       (srgb[src->g] - rgb[gen->g]) * (srgb[src->g] - rgb[gen->g]) +
+	       (srgb[src->b] - rgb[gen->b]) * (srgb[src->b] - rgb[gen->b]);
 }
 
 // evaluate a single pixel
-long evaluate_single_pixel(const Block *src, const Block *gen, int x, int y)
+double evaluate_single_pixel(const Block *src, const Block *gen, int x, int y)
 {
 	if (x < 0 || 8 <= x ||
 	    y < 0 || 8 <= y) return 0;
@@ -61,9 +69,9 @@ long evaluate_single_pixel(const Block *src, const Block *gen, int x, int y)
 
 // evaluate a pixel and its neighbors that are affected by it
 // apparently this doesn't work very well....
-long evaluate_pixel(const Block *src, const Block *gen, int x, int y)
+double evaluate_pixel(const Block *src, const Block *gen, int x, int y)
 {
-	long score = 0;
+	double score = 0;
 	for (int yy = -1; yy <= 1; ++yy) {
 		for (int xx = -1; xx <= 1; ++xx) {
 			score += evaluate_single_pixel(src, gen, x+xx, y+yy);
@@ -72,9 +80,24 @@ long evaluate_pixel(const Block *src, const Block *gen, int x, int y)
 	return score;
 }
 
-long evaluate(const Block *src, const Block *gen)
+static void init_srgb(void)
 {
-	long error = 0;
+        for (int i = 0; i < 256; ++i) {
+                double u = (double)i/255;
+                rgb[i] = u;
+                srgb[i] = u <= 0.04045 ? u / 12.92 : pow((u+0.055)/1.055, 2.4); // srgb
+                //srgb[i] = u <= 0.0031308 ? 12.92*u : pow(1.055*u, 1/2.4) - 0.055; // unsrgb (wrong way)
+        }
+}
+
+double evaluate(const Block *src, const Block *gen)
+{
+	static bool srgb_is_inited = false;
+	if (!srgb_is_inited) {
+		init_srgb();
+		srgb_is_inited = true;
+	}
+	double error = 0;
 	for (int y = 0; y < 8; ++y) {
 		for (int x = 0; x < 8; ++x) {
 			error += evaluate_single_pixel(src, gen, x, y);

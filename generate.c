@@ -13,7 +13,7 @@ static bool refine_pixel_genetically(const Block *src, const Color colors[2], Bl
 	bool change = false;
 
 	Color best_color = gen->pixels[y][x];
-	long best_score = evaluate_pixel(src, gen, x, y);
+	double best_score = evaluate_pixel(src, gen, x, y);
 	for (int i = 0; i < 2; ++i) {
 		if (best_score == 0) {
 			goto perfect;
@@ -24,7 +24,7 @@ static bool refine_pixel_genetically(const Block *src, const Color colors[2], Bl
 			continue;
 		}
 		gen->pixels[y][x] = colors[i];
-		long score = evaluate_pixel(src, gen, x, y);
+		double score = evaluate_pixel(src, gen, x, y);
 		if (score < best_score) {
 			best_score = score;
 			best_color = colors[i];
@@ -128,9 +128,9 @@ void generate(const Block *src, const Color colors[2], Block *gen)
 	bool perfect_score = true;
 	for (int y = 0; y < 8; ++y) {
 		for (int x = 0; x < 8; ++x) {
-			long best_score = LONG_MAX;
+			double best_score = LONG_MAX;
 			for (int c = 0; c < 2; ++c) {
-				long score = evaluate_color(&src->pixels[y][x], &colors[c]);
+				double score = evaluate_color(&src->pixels[y][x], &colors[c]);
 				if (score < best_score) {
 					gen->pixels[y][x] = colors[c];
 					best_score = score;

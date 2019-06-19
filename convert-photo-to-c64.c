@@ -181,6 +181,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+#if 0
 	// de-gamma the input image
 	for (int y = 0; y < image.height*8; ++y) {
 		for (int x = 0; x < image.width*8; ++x) {
@@ -189,6 +190,7 @@ int main(int argc, char *argv[])
 			PIXELAT(x, y, &image).b = 255 * pow(PIXELAT(x, y, &image).b / 255.0, GAMMA);
 		}
 	}
+#endif
 
 	//fprintf(stderr, "%s (%d)\n", __FILE__, __LINE__);
 #if 0
@@ -230,7 +232,7 @@ int main(int argc, char *argv[])
 		//fprintf(stderr, "\r%d%%", (100 * y + output.height / 2) / output.height);
 		for (int x = 0; x < output.width; ++x) {
 			fprintf(stderr, "\r%.2f%%", 100.0 * (y * output.width + x) / (output.height * output.width));
-			long best_score = LONG_MAX;
+			double best_score = 9999999999;
 			int best_color0ix = 0;
 			int best_color1ix = 1;
 			for (int color0ix = 0; color0ix < NUM_COLORS - 1; ++color0ix) {
@@ -239,7 +241,7 @@ int main(int argc, char *argv[])
 					colors[1] = all_colors[color1ix];
 					
 					generate(&BLOCKAT(x, y, &image), colors, &BLOCKAT(x, y, &output));
-					long score = evaluate(&BLOCKAT(x, y, &image), &BLOCKAT(x, y, &output));
+					double score = evaluate(&BLOCKAT(x, y, &image), &BLOCKAT(x, y, &output));
 					if (score < best_score) {
 						best_score = score;
 						best_color0ix = color0ix;
