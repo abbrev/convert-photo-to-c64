@@ -12,9 +12,9 @@ static double rgb[256];
 
 double evaluate_color(const Color *src, const Color *gen)
 {
-	return (srgb[src->r] - rgb[gen->r]) * (srgb[src->r] - rgb[gen->r]) +
-	       (srgb[src->g] - rgb[gen->g]) * (srgb[src->g] - rgb[gen->g]) +
-	       (srgb[src->b] - rgb[gen->b]) * (srgb[src->b] - rgb[gen->b]);
+	return ((srgb[src->r] - rgb[gen->r]) * (srgb[src->r] - rgb[gen->r]) +
+	        (srgb[src->g] - rgb[gen->g]) * (srgb[src->g] - rgb[gen->g]) +
+	        (srgb[src->b] - rgb[gen->b]) * (srgb[src->b] - rgb[gen->b]));
 }
 
 // evaluate a single pixel
@@ -33,12 +33,12 @@ double evaluate_single_pixel(const Block *src, const Block *gen, int x, int y)
 		{-1, 1},{ 0, 1},{ 1, 1},
 	};
 
-	const int weights[9] = {
-		 1, 5, 1,
-		 5, 8, 5,
-		 1, 5, 1,
+	static const int weights[9] = {
+		 1, 2, 1,
+		 2, 4, 2,
+		 1, 2, 1,
 	};
-	const int weightsum = 32;
+	static const int weightsum = 16; //32;
 
 	int rsum = 0;
 	int gsum = 0;

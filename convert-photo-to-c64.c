@@ -201,6 +201,8 @@ int main(int argc, char *argv[])
 
 	#define NUM_COLORS 16
 	Color all_colors[NUM_COLORS] = {
+#if 0
+		// pepto
 		{  0,   0,   0},/* 0       black	*/
 		{255, 255, 255},/* 1       white	*/
 		{116,  67,  53},/* 2       red		*/
@@ -217,6 +219,25 @@ int main(int argc, char *argv[])
 		{164, 215, 142},/* D light green	*/
 		{120, 106, 189},/* E light blue		*/
 		{159, 159, 159},/* F light grey		*/
+#else
+		// colodore
+		{  0,   0,   0},/* 0       black	*/
+		{255, 255, 255},/* 1       white	*/
+		{129,  51,  56},/* 2       red		*/
+		{117, 206, 200},/* 3       cyan		*/
+		{142,  60, 151},/* 4       purple 	*/
+		{ 86, 172,  77},/* 5       green	*/
+		{ 46,  44, 155},/* 6       blue		*/
+		{237, 241, 113},/* 7       yellow	*/
+		{142,  80,  41},/* 8       orange	*/
+		{ 85,  56,   0},/* 9       brown	*/
+		{196, 108, 113},/* A light red		*/
+		{ 74,  74,  74},/* B  dark grey		*/
+		{123, 123, 123},/* C       grey		*/
+		{169, 255, 159},/* D light green	*/
+		{112, 109, 235},/* E light blue		*/
+		{178, 178, 178},/* F light grey		*/
+#endif
 	};
 
 	// Colors are gamma corrected. Make them linear.

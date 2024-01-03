@@ -1,4 +1,4 @@
-CFLAGS += -O2 -Wall #-ggdb3
+CFLAGS += -O2 -Wall -std=c11 #-ggdb3
 LDFLAGS += -O2 #-ggdb3
 LDLIBS := -lnetpbm -lm #-lefence
 LD := $(CC)

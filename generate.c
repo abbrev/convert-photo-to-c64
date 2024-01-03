@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <limits.h>
+#include <math.h>
 
 #include "generate.h"
 #include "evaluate.h"
@@ -67,10 +68,10 @@ static const Coord *get_shuffled_coords(void)
 }
 
 // Do up to this many genetic runs.
-#define GENETIC_RUNS 10000
+#define GENETIC_RUNS 10//10000
 
 // If this many consecutive genetic runs yields an unchanging block, return early.
-#define MIN_CONSTANT_GENETIC_RUNS 10
+#define MIN_CONSTANT_GENETIC_RUNS 2
 
 /*
  * Genetically refine a block.
@@ -89,7 +90,7 @@ static void refine_genetically(const Block *src, const Color colors[2], Block *g
 		}
 #if 1
 		// If no changes in a few runs, abort and say it's good.
-		if (i - last_change >= MIN_CONSTANT_GENETIC_RUNS) {
+		if (GENETIC_RUNS > MIN_CONSTANT_GENETIC_RUNS && i - last_change >= MIN_CONSTANT_GENETIC_RUNS) {
 #if 0
 			if (i >= 10) {
 				fprintf(stderr, "made it to %d iterations before no change\n", i+1);
@@ -114,7 +115,7 @@ static void generate_with_dither(const Block *src, const Color colors[2], Block 
 	for (int y = 0; y < 8; ++y) {
 		for (int x = 0; x < 8; ++x) {
 			// TODO
-			gen->pixels[y][x] = (x&1)^(y&1) ? colors[0] : colors[1];
+			gen->pixels[y][x] = colors[(x^y)&1];
 		}
 	}
 }
@@ -124,11 +125,12 @@ static void generate_with_dither(const Block *src, const Color colors[2], Block 
  */
 void generate(const Block *src, const Color colors[2], Block *gen)
 {
+#if 0
 	// fill with nearest colors (no dithering)
 	bool perfect_score = true;
 	for (int y = 0; y < 8; ++y) {
 		for (int x = 0; x < 8; ++x) {
-			double best_score = LONG_MAX;
+			double best_score = INFINITY;
 			for (int c = 0; c < 2; ++c) {
 				double score = evaluate_color(&src->pixels[y][x], &colors[c]);
 				if (score < best_score) {
@@ -146,6 +148,14 @@ void generate(const Block *src, const Color colors[2], Block *gen)
 		// don't have to refine it.
 		return;
 	}
+#else
+	// fill with first color
+	for (int y = 0; y < 8; ++y) {
+		for (int x = 0; x < 8; ++x) {
+			gen->pixels[y][x] = colors[0];
+		}
+	}
+#endif
 	//generate_with_dither(src, colors, gen);
 	refine_genetically(src, colors, gen);
 }
