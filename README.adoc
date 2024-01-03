@@ -1,0 +1,75 @@
+= Convert photo to Commodore 64
+
+== Overview
+
+This program reads a PNM image file on standard input and writes a PPM
+image file on standard output. The output image adheres to the Commodore
+64's color palette and pixel block restrictions.
+
+== How it works
+
+In the standard "high-res" video mode, the Commodore 64 supports a
+palette of 16 colors and divides the screen into 8x8 pixel blocks. Each
+pixel in a block may be one of only two colors.
+
+This program looks at each block in the source image and attempts to
+find:
+
+* two Commodore 64 colors that best describe the colors in the source
+  image, and
+* an arrangement of those two colors that best matches the source image.
+
+This program uses brute-force matching to find the best colors. For each
+pair of colors, it finds the best arrangment of pixels for that pair.
+The pair that provides the best arrangement is chosen.
+
+The pixel arrangement for a given pair of colors is chosen initially by
+a simple nearest-color algorithm. That arrangement is then refined
+genetically: a pixel is chosen at random, and if the other color in the
+pair gives a better pixel arrangement than the current color, the other
+color is chosen instead. This algorithm is repeated at least once for
+each pixel in a block. If the block does not change after a few
+iterations of this algorithm, we assume we have found a near-optimal
+pixel arrangement.
+
+== Future improvements
+
+The evaluator functions are at the heart of the algorithms. They
+determine which block is "best".
+
+Currently the evaluators use the linear RGB values in the source and
+generated images. However, other color spaces (such as YUV) may yield
+better results.
+
+Also, the pixel evaluator may be improved. It currently uses a 3x3
+convolution filter to allow neighboring pixels to influence the score of
+a pixel. This causes the generated block to be dithered. Alternative
+convolution coefficients give different results.
+
+== Examples
+
+[cols='1a,1a,1a']
+|===
+|Original                   |Hires                         |Multicolor
+
+|image:afghangirl.png[]     |image:afghangirl.hires.png[]  |image:afghangirl.multicolor.png[]
+|image:bar.png[]            |image:bar.hires.png[]         |image:bar.multicolor.png[]
+|image:birds.png[]          |image:birds.hires.png[]       |image:birds.multicolor.png[]
+|image:coffee.png[]         |image:coffee.hires.png[]      |image:coffee.multicolor.png[]
+|image:desert.png[]         |image:desert.hires.png[]      |image:desert.multicolor.png[]
+|image:dsotm.png[]          |image:dsotm.hires.png[]       |image:dsotm.multicolor.png[]
+|image:eits.png[]           |image:eits.hires.png[]        |image:eits.multicolor.png[]
+|image:escher.png[]         |image:escher.hires.png[]      |image:escher.multicolor.png[]
+|image:gc.png[]             |image:gc.hires.png[]          |image:gc.multicolor.png[]
+|image:holi2.png[]          |image:holi2.hires.png[]       |image:holi2.multicolor.png[]
+|image:lena.png[]           |image:lena.hires.png[]        |image:lena.multicolor.png[]
+|image:monarch.png[]        |image:monarch.hires.png[]     |image:monarch.multicolor.png[]
+|image:nd.png[]             |image:nd.hires.png[]          |image:nd.multicolor.png[]
+|image:peppers.png[]        |image:peppers.hires.png[]     |image:peppers.multicolor.png[]
+|image:raytrace.png[]       |image:raytrace.hires.png[]    |image:raytrace.multicolor.png[]
+|image:rr.png[]             |image:rr.hires.png[]          |image:rr.multicolor.png[]
+|image:starry-night.png[]   |image:starry-night.hires.png[]|image:starry-night.multicolor.png[]
+|image:starwars2.png[]      |image:starwars2.hires.png[]   |image:starwars2.multicolor.png[]
+|image:starwars.png[]       |image:starwars.hires.png[]    |image:starwars.multicolor.png[]
+|image:webb.png[]           |image:webb.hires.png[]        |image:webb.multicolor.png[]
+|===
