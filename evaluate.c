@@ -18,9 +18,9 @@ double evaluate_color(const Color *src, const Color *gen)
 }
 
 static const int dither_pattern[9] = {
-	1, 2, 1,
-	2, 0, 2,
-	1, 2, 1,
+	0, 1, 0,
+	1, 0, 1,
+	0, 1, 0,
 };
 
 #define CENTER_WEIGHT 10000 // some large value so small dither weights can be represented
