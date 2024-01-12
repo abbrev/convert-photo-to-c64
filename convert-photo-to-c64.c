@@ -174,15 +174,15 @@ static double dither_weight = 1.0;
 static bool process_opts(int argc, char *argv[])
 {
 	int opt;
-	while ((opt = getopt(argc, argv, "w:")) != -1) {
+	while ((opt = getopt(argc, argv, "d:")) != -1) {
 		switch (opt) {
-		case 'w': {
-				  double w = atof(optarg);
-				  if (w < 0 || w > 1000) {
-					  fprintf(stderr, "weight must be between 0%% and 1000%%\n");
+		case 'd': {
+				  double d = atof(optarg);
+				  if (d < 0 || d > 1000) {
+					  fprintf(stderr, "dither strength must be between 0 and 1000\n");
 					  return false;
 				  }
-				  dither_weight = w / 100.;
+				  dither_weight = d / 100.;
 			  }
 			  break;
 		default:
