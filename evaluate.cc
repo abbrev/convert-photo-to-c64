@@ -22,12 +22,12 @@ double evaluate_color(const Color *src, const Color *gen)
 #if 1
 #define DITHER_KERNEL_SIZE 3
 static const int dither_pattern[DITHER_KERNEL_SIZE2] = {
-	0, 8, 0,
-	8, 0, 8,
-	0, 8, 0,
+	3, 8, 3,
+	8, 3, 8,
+	3, 8, 3,
 };
 
-static int eval_weights[DITHER_KERNEL_SIZE2] = {
+static double eval_weights[DITHER_KERNEL_SIZE2] = {
 	0,0,0,
 	0,1,0,
 	0,0,0,
@@ -52,7 +52,7 @@ static int eval_weights[DITHER_KERNEL_SIZE2] = {
 #endif
 
 #define CENTER_WEIGHT 10000 // some large value so small dither weights can be represented
-static int eval_weightsum = 1;
+static double eval_weightsum = 1;
 
 void set_dither_weight(double w)
 {
@@ -62,7 +62,7 @@ void set_dither_weight(double w)
 	}
 	eval_weightsum = 0;
 	for (int i = 0; i < DITHER_KERNEL_SIZE2; ++i) {
-		eval_weights[i] = (i == DITHER_KERNEL_SIZE2/2) ? CENTER_WEIGHT : dither_pattern[i] * CENTER_WEIGHT * w / total_dither_weight;
+		eval_weights[i] = (i == DITHER_KERNEL_SIZE2/2) ? CENTER_WEIGHT : (double)dither_pattern[i] * CENTER_WEIGHT * w / total_dither_weight;
 		eval_weightsum += eval_weights[i];
 	}
 }
@@ -93,9 +93,9 @@ double evaluate_single_pixel(const Block *src, const Block *gen, int x, int y)
 	};
 #endif
 
-	int rsum = 0;
-	int gsum = 0;
-	int bsum = 0;
+	double rsum = 0;
+	double gsum = 0;
+	double bsum = 0;
 	for (int i = 0; i < DITHER_KERNEL_SIZE2; ++i) {
 		int xx = x + coords[i].x;
 		int yy = y + coords[i].y;
@@ -106,15 +106,26 @@ double evaluate_single_pixel(const Block *src, const Block *gen, int x, int y)
 		if (yy < 0) yy = -yy;
 		else if (yy >= 8) yy = 15 - yy - 1;
 
-		rsum += (int)gen->pixels[yy][xx].r * eval_weights[i];
-		gsum += (int)gen->pixels[yy][xx].g * eval_weights[i];
-		bsum += (int)gen->pixels[yy][xx].b * eval_weights[i];
+		rsum += gen->pixels[yy][xx].r * eval_weights[i];
+		gsum += gen->pixels[yy][xx].g * eval_weights[i];
+		bsum += gen->pixels[yy][xx].b * eval_weights[i];
 	}
 
+	rsum /= eval_weightsum;
+	gsum /= eval_weightsum;
+	bsum /= eval_weightsum;
+
+	if (rsum < 0) rsum = 0;
+	else if (rsum > 255) rsum = 255;
+	if (gsum < 0) gsum = 0;
+	else if (gsum > 255) gsum = 255;
+	if (bsum < 0) bsum = 0;
+	else if (bsum > 255) bsum = 255;
+
 	Color avgColor = {
-		(uint8_t)(rsum / eval_weightsum),
-		(uint8_t)(gsum / eval_weightsum),
-		(uint8_t)(bsum / eval_weightsum),
+		(uint8_t)rsum,
+		(uint8_t)gsum,
+		(uint8_t)bsum,
 	};
 
 	return evaluate_color(srcColor, &avgColor);
@@ -146,9 +157,9 @@ double evaluate_single_pixel(const Image *src, const Image *gen, int x, int y)
 	};
 #endif
 
-	int rsum = 0;
-	int gsum = 0;
-	int bsum = 0;
+	double rsum = 0;
+	double gsum = 0;
+	double bsum = 0;
 	for (int i = 0; i < DITHER_KERNEL_SIZE2; ++i) {
 		int xx = x + coords[i].x;
 		int yy = y + coords[i].y;
@@ -159,15 +170,26 @@ double evaluate_single_pixel(const Image *src, const Image *gen, int x, int y)
 		if (yy < 0) yy = -yy;
 		else if (yy >= 8*gen->getHeight()) yy = 2*(8*gen->getHeight() - 1) - yy;
 
-		rsum += (int)gen->pixelAt(xx, yy).r * eval_weights[i];
-		gsum += (int)gen->pixelAt(xx, yy).g * eval_weights[i];
-		bsum += (int)gen->pixelAt(xx, yy).b * eval_weights[i];
+		rsum += gen->pixelAt(xx, yy).r * eval_weights[i];
+		gsum += gen->pixelAt(xx, yy).g * eval_weights[i];
+		bsum += gen->pixelAt(xx, yy).b * eval_weights[i];
 	}
 
+	rsum /= eval_weightsum;
+	gsum /= eval_weightsum;
+	bsum /= eval_weightsum;
+
+	if (rsum < 0) rsum = 0;
+	else if (rsum > 255) rsum = 255;
+	if (gsum < 0) gsum = 0;
+	else if (gsum > 255) gsum = 255;
+	if (bsum < 0) bsum = 0;
+	else if (bsum > 255) bsum = 255;
+
 	Color avgColor = {
-		(uint8_t)(rsum / eval_weightsum),
-		(uint8_t)(gsum / eval_weightsum),
-		(uint8_t)(bsum / eval_weightsum),
+		(uint8_t)rsum,
+		(uint8_t)gsum,
+		(uint8_t)bsum,
 	};
 
 	return evaluate_color(srcColor, &avgColor);
