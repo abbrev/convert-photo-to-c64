@@ -4,12 +4,6 @@
 
 #include "evaluate.h"
 
-// gamma-corrected values (for sRGB) (e.g., 128 => 0.21586, 188 => 0.50289, 255 => 1.00000 etc)
-static double srgb[256];
-
-// linear RGB
-static double rgb[256];
-
 double evaluate_color(const Color *src, const Color *gen)
 {
 	return ((src->r - gen->r) * (src->r - gen->r) +
@@ -70,7 +64,7 @@ void set_dither_weight(double w)
 // evaluate a single pixel
 double evaluate_single_pixel(const Block *src, const Block *gen, int x, int y)
 {
-	if (x < 0 || 8 <= x ||
+	if (x < 0 || src->getWidth() <= x ||
 	    y < 0 || 8 <= y) return 0;
 
 	const Color *srcColor = &src->pixels[y][x];
@@ -102,9 +96,9 @@ double evaluate_single_pixel(const Block *src, const Block *gen, int x, int y)
 
 		// mirror at the edges
 		if (xx < 0) xx = -xx;
-		else if (xx >= 8) xx = 15 - xx - 1;
+		else if (xx >= src->getWidth()) xx = 2*(src->getWidth() - 1) - xx;
 		if (yy < 0) yy = -yy;
-		else if (yy >= 8) yy = 15 - yy - 1;
+		else if (yy >= 8) yy = 2*(8-1) - yy;
 
 		rsum += gen->pixels[yy][xx].r * eval_weights[i];
 		gsum += gen->pixels[yy][xx].g * eval_weights[i];
@@ -126,6 +120,7 @@ double evaluate_single_pixel(const Block *src, const Block *gen, int x, int y)
 		rsum,
 		gsum,
 		bsum,
+		0,
 	};
 
 	return evaluate_color(srcColor, &avgColor);
@@ -134,7 +129,7 @@ double evaluate_single_pixel(const Block *src, const Block *gen, int x, int y)
 // evaluate a single pixel
 double evaluate_single_pixel(const Image *src, const Image *gen, int x, int y)
 {
-	if (x < 0 || 8*gen->getWidth()  <= x ||
+	if (x < 0 || gen->getBlockWidth()*gen->getWidth()  <= x ||
 	    y < 0 || 8*gen->getHeight() <= y) return 0;
 
 	const Color *srcColor = &src->pixelAt(x, y);
@@ -166,7 +161,7 @@ double evaluate_single_pixel(const Image *src, const Image *gen, int x, int y)
 
 		// mirror at the edges
 		if (xx < 0) xx = -xx;
-		else if (xx >= 8*gen->getWidth())  xx = 2*(8*gen->getWidth()  - 1) - xx;
+		else if (xx >= gen->getBlockWidth()*gen->getWidth())  xx = 2*(gen->getBlockWidth()*gen->getWidth()  - 1) - xx;
 		if (yy < 0) yy = -yy;
 		else if (yy >= 8*gen->getHeight()) yy = 2*(8*gen->getHeight() - 1) - yy;
 
@@ -190,6 +185,7 @@ double evaluate_single_pixel(const Image *src, const Image *gen, int x, int y)
 		rsum,
 		gsum,
 		bsum,
+		0,
 	};
 
 	return evaluate_color(srcColor, &avgColor);
@@ -223,25 +219,11 @@ double evaluate_pixel(const Image *src, const Image *gen, int x, int y)
 	return score;
 }
 
-static void init_srgb(void)
-{
-        for (int i = 0; i < 256; ++i) {
-                double u = (double)i/255;
-                rgb[i] = u;
-                srgb[i] = u; //pow(u, 2.2); //u <= 0.04045 ? u / 12.92 : pow((u+0.055)/1.055, 2.4); // srgb
-        }
-}
-
 double evaluate(const Block *src, const Block *gen)
 {
-	static bool srgb_is_inited = false;
-	if (!srgb_is_inited) {
-		init_srgb();
-		srgb_is_inited = true;
-	}
 	double error = 0;
 	for (int y = 0; y < 8; ++y) {
-		for (int x = 0; x < 8; ++x) {
+		for (int x = 0; x < src->getWidth(); ++x) {
 			error += evaluate_pixel(src, gen, x, y);
 		}
 	}

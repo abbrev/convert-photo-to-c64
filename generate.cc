@@ -18,7 +18,7 @@ static bool refine_pixel(const Block *src, Block *gen, int x, int y)
 	Color best_color = pixel;
 	double best_score = INFINITY;
 
-	for (int i = 0; i < 2; ++i) {
+	for (int i = 0; i < src->getPaletteSize(); ++i) {
 		pixel = src->getPalette(i);
 		double score = evaluate_pixel(src, gen, x, y);
 		if (score < best_score) {
@@ -36,7 +36,7 @@ static bool refine_pixel(const Block *src, Block *gen, int x, int y)
  */
 static bool refine_pixel(const Image *src, Image *gen, int x, int y)
 {
-	int bx = x / 8;
+	int bx = x / gen->getBlockWidth();
 	int by = y / 8;
 
 	const Block& src_block = src->blockAt(bx, by);
@@ -47,7 +47,7 @@ static bool refine_pixel(const Image *src, Image *gen, int x, int y)
 	Color best_color = pixel;
 	double best_score = INFINITY;
 
-	for (int i = 0; i < 2; ++i) {
+	for (int i = 0; i < src_block.getPaletteSize(); ++i) {
 		pixel = src_block.getPalette(i);
 		double score = evaluate_pixel(src, gen, x, y);
 		if (score < best_score) {
@@ -64,7 +64,7 @@ typedef struct {
 	uint8_t x, y;
 } Coord;
 
-static const Coord *get_shuffled_coords(void)
+static const Coord *get_shuffled_coords(int width, int height)
 {
 	static Coord coords[8*8];
 	static bool initialized = false;
@@ -72,15 +72,15 @@ static const Coord *get_shuffled_coords(void)
 	if (!initialized) {
 		Coord *coord = coords;
 
-		for (int y = 0; y < 8; ++y) {
-			for (int x = 0; x < 8; ++x) {
+		for (int y = 0; y < height; ++y) {
+			for (int x = 0; x < width; ++x) {
 				*coord++ = (Coord){(uint8_t)x,(uint8_t)y};
 			}
 		}
 	}
 
 	// shuffle the coords
-	for (int i = 8*8-1; i > 0; --i) {
+	for (int i = width*height-1; i > 0; --i) {
 		int j = (unsigned long long)rand() * (i+1) / RAND_MAX;
 		Coord c   = coords[i];
 		coords[i] = coords[j];
@@ -103,9 +103,9 @@ void refine_genetically(const Block *src, Block *gen, int passes)
 	int last_change = 0;
 
 	for (int i = 0; i < passes; ++i) {
-		const Coord *coords = get_shuffled_coords();
+		const Coord *coords = get_shuffled_coords(src->getWidth(), 8);
 
-		for (int j = 0; j < 8*8; ++j) {
+		for (int j = 0; j < src->getWidth()*8; ++j) {
 			if (refine_pixel(src, gen, coords[j].x, coords[j].y)) {
 				last_change = i;
 			}
@@ -136,15 +136,15 @@ void refine_genetically(const Image *src, Image *gen)
 
 	for (int i = 0; i < runs; ++i) {
 		fprintf(stderr, "\rrefining   %.2f%%", 100.0 * i / runs);
-		const Coord *coords = get_shuffled_coords();
+		const Coord *coords = get_shuffled_coords(gen->getBlockWidth(), 8);
 
 		int num_changes = 0;
 		for (int y = 0; y < gen->getHeight(); ++y) {
 			for (int x = 0; x < gen->getWidth(); ++x) {
-				for (int j = 0; j < 8*8; ++j) {
+				for (int j = 0; j < gen->getBlockWidth()*8; ++j) {
 					int offset = x^y;
-					const Coord& coord = coords[(j+offset)%(8*8)];
-					if (refine_pixel(src, gen, x*8+coord.x, y*8+coord.y)) {
+					const Coord& coord = coords[(j+offset)%(gen->getBlockWidth()*8)];
+					if (refine_pixel(src, gen, x*gen->getBlockWidth()+coord.x, y*8+coord.y)) {
 						last_change = i;
 						++num_changes;
 					}
@@ -188,16 +188,16 @@ static void generate_with_dither(const Block *src, const Color colors[2], Block 
 /*
  * Generate a block with the given colors.
  */
-void generate(const Block *src, const Color colors[2], Block *gen)
+void generate(const Block *src, Block *gen)
 {
 #if 1
 	*gen = *src;
 #elif 1
 	// fill with nearest colors (no dithering)
 	for (int y = 0; y < 8; ++y) {
-		for (int x = 0; x < 8; ++x) {
+		for (int x = 0; x < src->getWidth(); ++x) {
 			double best_score = INFINITY;
-			for (int c = 0; c < 2; ++c) {
+			for (int c = 0; c < src->getPaletteSize(); ++c) {
 				double score = evaluate_color(&src->pixelAt(x, y), &src->getPalette(c));
 				if (score < best_score) {
 					gen->pixelAt(x, y) = src->getPalette(c);
@@ -210,7 +210,7 @@ void generate(const Block *src, const Color colors[2], Block *gen)
 	// fill with first color
 	for (int y = 0; y < 8; ++y) {
 		for (int x = 0; x < 8; ++x) {
-			gen->pixelAt(x, y) = colors[0];
+			gen->pixelAt(x, y) = src->getPalette(0);
 		}
 	}
 #endif

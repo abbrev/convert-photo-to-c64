@@ -1,10 +1,11 @@
 #ifndef IMAGE_H
 #define IMAGE_H
 
+#include <assert.h>
+
 #include "block.h"
 
 //#define NUM_COLORS 2
-#define BLOCK_WIDTH  8
 #define BLOCK_HEIGHT 8
 
 class Image {
@@ -36,14 +37,18 @@ public:
 	      Block& blockAt(int x, int y)       { return blocks[y*width + x]; }
 	const Block& blockAt(int x, int y) const { return blocks[y*width + x]; }
 
-	      Color& pixelAt(int x, int y)       { return blockAt(x/BLOCK_WIDTH, y/BLOCK_HEIGHT).pixels[y%BLOCK_HEIGHT][x%BLOCK_WIDTH]; }
-	const Color& pixelAt(int x, int y) const { return blockAt(x/BLOCK_WIDTH, y/BLOCK_HEIGHT).pixels[y%BLOCK_HEIGHT][x%BLOCK_WIDTH]; }
+	      Color& pixelAt(int x, int y)       { assert(blockWidth!=0); return blockAt(x/blockWidth, y/BLOCK_HEIGHT).pixels[y%BLOCK_HEIGHT][x%blockWidth]; }
+	const Color& pixelAt(int x, int y) const { assert(blockWidth!=0); return blockAt(x/blockWidth, y/BLOCK_HEIGHT).pixels[y%BLOCK_HEIGHT][x%blockWidth]; }
 
 	int getWidth(void) const { return width; }
 	int getHeight(void) const { return height; }
 
+	int getBlockWidth() const { return blockWidth; }
+	void setBlockWidth(int w) { blockWidth = w; }
+
 private:
 	int width, height;
+	int blockWidth;
 	Block *blocks = nullptr;
 };
 

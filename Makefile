@@ -52,7 +52,7 @@ c64images: $(MULTICOLOR_IMAGES) $(HIRES_IMAGES)
 .PHONY: FORCE
 
 %.hires.png: %.png FORCE
-	pngtopnm <$<                        | ./convert-photo-to-c64                             | pnmtopng >$@
-                                                                     
-%.multicolor.png: %.png FORCE                                        
-	pngtopnm <$< | pnmscale -xscale 0.5 | ./convert-photo-to-c64 | pnmscale -xscale 2 -nomix | pnmtopng >$@
+	pngtopnm <$<                        | ./convert-photo-to-c64 -m hires -p colodore                                  | pnmtopng >$@
+
+%.multicolor.png: %.png FORCE
+	pngtopnm <$< | pnmscale -xscale 0.5 | ./convert-photo-to-c64 -m multicolor -p colodore | pnmscale -xscale 2 -nomix | pnmtopng >$@

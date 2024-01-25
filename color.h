@@ -3,6 +3,7 @@
 
 struct Color {
 	double r,g,b;
+	int ix;
 
 	bool operator ==(const Color &other) const {
 		return r == other.r &&
