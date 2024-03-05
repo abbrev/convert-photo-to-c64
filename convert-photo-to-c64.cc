@@ -260,11 +260,32 @@ static Palette palettes[] = {
 static Palette *palette = &palettes[0];
 static double dither_weight = 4.0;
 static double saturation = 1.0;
+static bool exclusions[NUM_COLORS]; // colors to exclude
+
+static bool *get_colors_from_list(const char *s)
+{
+	static bool colors[NUM_COLORS];
+	for (int i = 0; i < NUM_COLORS; ++i) {
+		colors[i] = false;
+	}
+	char *endptr;
+	for (const char *p = s; p[0] != '\0'; p = endptr) {
+		long c = strtol(p, &endptr, 10);
+		if (endptr > p) {
+			if (0 <= c && c < NUM_COLORS) {
+				colors[c] = true;
+			} else {
+				return nullptr;
+			}
+		}
+	}
+	return colors;
+}
 
 static bool process_opts(int argc, char *argv[])
 {
 	int opt;
-	while ((opt = getopt(argc, argv, "b:d:m:p:s:P:")) != -1) {
+	while ((opt = getopt(argc, argv, "b:d:i:x:m:p:s:P:")) != -1) {
 		switch (opt) {
 			case 'b': {
 				int b = atoi(optarg);
@@ -319,6 +340,30 @@ static bool process_opts(int argc, char *argv[])
 				break;
 			}
 			#endif
+			case 'i': {
+				// include colors
+				bool *colors = get_colors_from_list(optarg);
+				if (!colors) {
+					fprintf(stderr, "Error: bad color list format \"%s\"\n", optarg);
+					return false;
+				}
+				for (int i = 0; i < NUM_COLORS; ++i) {
+					exclusions[i] = !colors[i];
+				}
+				break;
+			}
+			case 'x': {
+				// exclude colors
+				bool *colors = get_colors_from_list(optarg);
+				if (!colors) {
+					fprintf(stderr, "Error: bad color list format \"%s\"\n", optarg);
+					return false;
+				}
+				for (int i = 0; i < NUM_COLORS; ++i) {
+					exclusions[i] = colors[i];
+				}
+				break;
+			}
 			case 's': {
 				double s = atof(optarg);
 				saturation = s / 100.;
@@ -340,6 +385,11 @@ int main(int argc, char *argv[])
 
 	if (bgcolorix < 0 || num_palette_colors <= bgcolorix) {
 		fprintf(stderr, "Error: bg color out of bounds\n");
+		return 1;
+	}
+
+	if (gfx_mode == MULTICOLOR && exclusions[bgcolorix]) {
+		fprintf(stderr, "Error: bgcolor is excluded!\n");
 		return 1;
 	}
 
@@ -426,10 +476,16 @@ int main(int argc, char *argv[])
 			output_block.setPalette(3, bgcolor);
 
 			for (int color0ix = 0; color0ix < color0max; ++color0ix) {
+				if (exclusions[color0ix]) {
+					continue;
+				}
 				input_block.setPalette(0, palette->colors[color0ix]);
 				output_block.setPalette(0, palette->colors[color0ix]);
 
 				for (int color1ix = color0ix; color1ix < color1max; ++color1ix) {
+					if (exclusions[color1ix]) {
+						continue;
+					}
 					input_block.setPalette(1, palette->colors[color1ix]);
 					output_block.setPalette(1, palette->colors[color1ix]);
 
@@ -439,6 +495,9 @@ int main(int argc, char *argv[])
 					}
 
 					for (; color2ix < num_palette_colors; ++color2ix) {
+						if (gfx_mode == MULTICOLOR && exclusions[color2ix]) {
+							continue;
+						}
 						input_block.setPalette(2, palette->colors[color2ix]);
 						output_block.setPalette(2, palette->colors[color2ix]);
 
