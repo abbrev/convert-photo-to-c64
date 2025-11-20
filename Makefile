@@ -1,10 +1,12 @@
 CFLAGS += -O2 -Wall #-ggdb3
-LDFLAGS += -O2
+LDFLAGS += -O2 #-ggdb3
 LDLIBS := -lnetpbm -lm #-lefence
+LD := $(CC)
 
 all: convert-photo-to-c64
 
 convert-photo-to-c64: convert-photo-to-c64.o generate.o evaluate.o
+	$(LD) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 #.o.c:
 
