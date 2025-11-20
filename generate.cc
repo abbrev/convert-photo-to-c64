@@ -10,61 +10,54 @@
 /*
  * Refine one pixel to maximize the score for the whole block.
  */
-static bool refine_pixel_genetically(const Block *src, const Color colors[2], Block *gen, int x, int y)
+static bool refine_pixel(const Block *src, Block *gen, int x, int y)
 {
-	bool change = false;
+	Color& pixel = gen->pixelAt(x, y);
 
-	Color best_color = gen->pixels[y][x];
-	double best_score = evaluate_pixel(src, gen, x, y);
+	Color original_color = pixel;
+	Color best_color = pixel;
+	double best_score = INFINITY;
+
 	for (int i = 0; i < 2; ++i) {
-		if (best_score == 0) {
-			goto perfect;
-		}
-		if (colors[i] == best_color) {
-			continue;
-		}
-		gen->pixels[y][x] = colors[i];
+		pixel = src->getPalette(i);
 		double score = evaluate_pixel(src, gen, x, y);
 		if (score < best_score) {
 			best_score = score;
-			best_color = colors[i];
-			change = true;
+			best_color = src->getPalette(i);
 		}
 	}
 
-	gen->pixels[y][x] = best_color;
-perfect:
-	return change;
+	pixel = best_color;
+	return best_color != original_color;
 }
 
 /*
  * Refine one pixel to maximize the score for the whole block.
  */
-static bool refine_pixel(const Image *src, const Color colors[2], Image *gen, int x, int y)
+static bool refine_pixel(const Image *src, Image *gen, int x, int y)
 {
-	bool change = false;
+	int bx = x / 8;
+	int by = y / 8;
 
-	Color best_color = gen->pixelAt(x, y);
-	double best_score = evaluate_pixel(src, gen, x, y);
+	const Block& src_block = src->blockAt(bx, by);
+
+	Color& pixel = gen->pixelAt(x, y);
+
+	Color original_color = pixel;
+	Color best_color = pixel;
+	double best_score = INFINITY;
+
 	for (int i = 0; i < 2; ++i) {
-		if (best_score == 0) {
-			goto perfect;
-		}
-		if (colors[i] == best_color) {
-			continue;
-		}
-		gen->pixelAt(x, y) = colors[i];
+		pixel = src_block.getPalette(i);
 		double score = evaluate_pixel(src, gen, x, y);
 		if (score < best_score) {
 			best_score = score;
-			best_color = colors[i];
-			change = true;
+			best_color = src_block.getPalette(i);
 		}
 	}
 
-	gen->pixelAt(x, y) = best_color;
-perfect:
-	return change;
+	pixel = best_color;
+	return best_color != original_color;
 }
 
 typedef struct {
@@ -105,7 +98,7 @@ static const Coord *get_shuffled_coords(void)
 /*
  * Genetically refine a block.
  */
-void refine_genetically(const Block *src, const Color colors[2], Block *gen, int passes)
+void refine_genetically(const Block *src, Block *gen, int passes)
 {
 	int last_change = 0;
 
@@ -113,7 +106,7 @@ void refine_genetically(const Block *src, const Color colors[2], Block *gen, int
 		const Coord *coords = get_shuffled_coords();
 
 		for (int j = 0; j < 8*8; ++j) {
-			if (refine_pixel_genetically(src, colors, gen, coords[j].x, coords[j].y)) {
+			if (refine_pixel(src, gen, coords[j].x, coords[j].y)) {
 				last_change = i;
 			}
 		}
@@ -136,7 +129,7 @@ void refine_genetically(const Block *src, const Color colors[2], Block *gen, int
 	}
 }
 
-void refine_genetically(const Image *src, const Color block_colors[200][200][2], Image *gen)
+void refine_genetically(const Image *src, Image *gen)
 {
 	int last_change = 0;
 	int runs = GENETIC_RUNS;
@@ -149,7 +142,9 @@ void refine_genetically(const Image *src, const Color block_colors[200][200][2],
 		for (int y = 0; y < gen->getHeight(); ++y) {
 			for (int x = 0; x < gen->getWidth(); ++x) {
 				for (int j = 0; j < 8*8; ++j) {
-					if (refine_pixel(src, block_colors[y][x], gen, x*8+coords[j].x, y*8+coords[j].y)) {
+					int offset = x^y;
+					const Coord& coord = coords[(j+offset)%(8*8)];
+					if (refine_pixel(src, gen, x*8+coord.x, y*8+coord.y)) {
 						last_change = i;
 						++num_changes;
 					}
@@ -184,7 +179,7 @@ static void generate_with_dither(const Block *src, const Color colors[2], Block 
 	for (int y = 0; y < 8; ++y) {
 		for (int x = 0; x < 8; ++x) {
 			// TODO
-			gen->pixels[y][x] = colors[(x^y)&1];
+			gen->pixelAt(x, y) = colors[(x^y)&1];
 		}
 	}
 }
@@ -196,14 +191,16 @@ static void generate_with_dither(const Block *src, const Color colors[2], Block 
 void generate(const Block *src, const Color colors[2], Block *gen)
 {
 #if 1
+	*gen = *src;
+#elif 1
 	// fill with nearest colors (no dithering)
 	for (int y = 0; y < 8; ++y) {
 		for (int x = 0; x < 8; ++x) {
 			double best_score = INFINITY;
 			for (int c = 0; c < 2; ++c) {
-				double score = evaluate_color(&src->pixels[y][x], &colors[c]);
+				double score = evaluate_color(&src->pixelAt(x, y), &src->getPalette(c));
 				if (score < best_score) {
-					gen->pixels[y][x] = colors[c];
+					gen->pixelAt(x, y) = src->getPalette(c);
 					best_score = score;
 				}
 			}
@@ -213,7 +210,7 @@ void generate(const Block *src, const Color colors[2], Block *gen)
 	// fill with first color
 	for (int y = 0; y < 8; ++y) {
 		for (int x = 0; x < 8; ++x) {
-			gen->pixels[y][x] = colors[0];
+			gen->pixelAt(x, y) = colors[0];
 		}
 	}
 #endif

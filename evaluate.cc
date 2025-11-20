@@ -12,9 +12,9 @@ static double rgb[256];
 
 double evaluate_color(const Color *src, const Color *gen)
 {
-	return ((srgb[src->r] - rgb[gen->r]) * (srgb[src->r] - rgb[gen->r]) +
-	        (srgb[src->g] - rgb[gen->g]) * (srgb[src->g] - rgb[gen->g]) +
-	        (srgb[src->b] - rgb[gen->b]) * (srgb[src->b] - rgb[gen->b]));
+	return ((src->r - gen->r) * (src->r - gen->r) +
+	        (src->g - gen->g) * (src->g - gen->g) +
+	        (src->b - gen->b) * (src->b - gen->b));
 }
 
 #define DITHER_KERNEL_SIZE2 (DITHER_KERNEL_SIZE*DITHER_KERNEL_SIZE)
@@ -22,9 +22,9 @@ double evaluate_color(const Color *src, const Color *gen)
 #if 1
 #define DITHER_KERNEL_SIZE 3
 static const int dither_pattern[DITHER_KERNEL_SIZE2] = {
-	3, 8, 3,
-	8, 3, 8,
-	3, 8, 3,
+	1, 8, 1,
+	8, 1, 8,
+	1, 8, 1,
 };
 
 static double eval_weights[DITHER_KERNEL_SIZE2] = {
@@ -116,16 +116,16 @@ double evaluate_single_pixel(const Block *src, const Block *gen, int x, int y)
 	bsum /= eval_weightsum;
 
 	if (rsum < 0) rsum = 0;
-	else if (rsum > 255) rsum = 255;
+	else if (rsum > 1) rsum = 1;
 	if (gsum < 0) gsum = 0;
-	else if (gsum > 255) gsum = 255;
+	else if (gsum > 1) gsum = 1;
 	if (bsum < 0) bsum = 0;
-	else if (bsum > 255) bsum = 255;
+	else if (bsum > 1) bsum = 1;
 
 	Color avgColor = {
-		(uint8_t)rsum,
-		(uint8_t)gsum,
-		(uint8_t)bsum,
+		rsum,
+		gsum,
+		bsum,
 	};
 
 	return evaluate_color(srcColor, &avgColor);
@@ -180,16 +180,16 @@ double evaluate_single_pixel(const Image *src, const Image *gen, int x, int y)
 	bsum /= eval_weightsum;
 
 	if (rsum < 0) rsum = 0;
-	else if (rsum > 255) rsum = 255;
+	else if (rsum > 1) rsum = 1;
 	if (gsum < 0) gsum = 0;
-	else if (gsum > 255) gsum = 255;
+	else if (gsum > 1) gsum = 1;
 	if (bsum < 0) bsum = 0;
-	else if (bsum > 255) bsum = 255;
+	else if (bsum > 1) bsum = 1;
 
 	Color avgColor = {
-		(uint8_t)rsum,
-		(uint8_t)gsum,
-		(uint8_t)bsum,
+		rsum,
+		gsum,
+		bsum,
 	};
 
 	return evaluate_color(srcColor, &avgColor);
@@ -228,8 +228,7 @@ static void init_srgb(void)
         for (int i = 0; i < 256; ++i) {
                 double u = (double)i/255;
                 rgb[i] = u;
-                srgb[i] = u <= 0.04045 ? u / 12.92 : pow((u+0.055)/1.055, 2.4); // srgb
-                //srgb[i] = u <= 0.0031308 ? 12.92*u : pow(1.055*u, 1/2.4) - 0.055; // unsrgb (wrong way)
+                srgb[i] = u; //pow(u, 2.2); //u <= 0.04045 ? u / 12.92 : pow((u+0.055)/1.055, 2.4); // srgb
         }
 }
 

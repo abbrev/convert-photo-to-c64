@@ -16,6 +16,17 @@ extern "C" {
 #include "evaluate.h"
 #include "generate.h"
 
+static double from_gamma(double d)
+{
+	return d <= 0.04045 ? d / 12.92 : pow((d+0.055)/1.055, 2.4);
+}
+
+static double to_gamma(double d)
+{
+	return d <= 0.0031308 ? 12.92*d : pow(1.055*d, 1/2.4) - 0.055;
+}
+
+
 static Image *load_image(FILE *pamfile)
 {
 	Image *image = nullptr;
@@ -73,9 +84,9 @@ static Image *load_image(FILE *pamfile)
 		pnm_readpamrow(&inpam, tuplerow);
 		for (int x = 0; x < inpam.width; ++x) {
 			image->pixelAt(x, y) = (Color){
-				(uint8_t)(tuplerow[x][rindex] * 255 / inpam.maxval),
-				(uint8_t)(tuplerow[x][gindex] * 255 / inpam.maxval),
-				(uint8_t)(tuplerow[x][bindex] * 255 / inpam.maxval),
+				from_gamma((double)tuplerow[x][rindex] / inpam.maxval),
+				from_gamma((double)tuplerow[x][gindex] / inpam.maxval),
+				from_gamma((double)tuplerow[x][bindex] / inpam.maxval),
 			};
 		}
 	}
@@ -121,13 +132,17 @@ static void save_image(FILE *pamfile, const Image *image)
 
 	pnm_writepaminit(&outpam);
 
+	int rindex = 0;
+	int gindex = 1;
+	int bindex = 2;
+
 	tuple *tuplerow = pnm_allocpamrow(&outpam);
 	for (int y = 0; y < image->getHeight() * 8; ++y) {
 		for (int x = 0; x < image->getWidth() * 8; ++x) {
 			const Color& p = image->pixelAt(x, y);
-			tuplerow[x][0] = outpam.maxval * p.r / 255;
-			tuplerow[x][1] = outpam.maxval * p.g / 255;
-			tuplerow[x][2] = outpam.maxval * p.b / 255;
+			tuplerow[x][rindex] = round(outpam.maxval * p.r);
+			tuplerow[x][gindex] = round(outpam.maxval * p.g);
+			tuplerow[x][bindex] = round(outpam.maxval * p.b);
 		}
 		pnm_writepamrow(&outpam, tuplerow);
 	}
@@ -151,7 +166,7 @@ static void save_image(FILE *pamfile, const Image *image)
 	pnm_freepamrow(tuplerow);
 }
 
-static double dither_weight = 2.0;
+static double dither_weight = 4.0;
 
 static bool process_opts(int argc, char *argv[])
 {
@@ -175,8 +190,6 @@ static bool process_opts(int argc, char *argv[])
 	return true;
 }
 
-#define GAMMA 2.2
-
 int main(int argc, char *argv[])
 {
 	srand(time(NULL));
@@ -189,17 +202,6 @@ int main(int argc, char *argv[])
 		//fprintf(stderr, "%s (%d): bad image?\n", __FILE__, __LINE__);
 		return 1;
 	}
-
-#if 0
-	// de-gamma the input image
-	for (int y = 0; y < image->getHeight()*8; ++y) {
-		for (int x = 0; x < image->getWidth()*8; ++x) {
-			image->pixelAt(x, y).r = 255 * pow(image->pixelAt(x, y).r / 255.0, GAMMA);
-			image->pixelAt(x, y).g = 255 * pow(image->pixelAt(x, y).g / 255.0, GAMMA);
-			image->pixelAt(x, y).b = 255 * pow(image->pixelAt(x, y).b / 255.0, GAMMA);
-		}
-	}
-#endif
 
 	//fprintf(stderr, "%s (%d)\n", __FILE__, __LINE__);
 #if 0
@@ -250,9 +252,9 @@ int main(int argc, char *argv[])
 
 	// Colors are gamma corrected. Make them linear.
 	for (int i = 0; i < NUM_COLORS; ++i) {
-		all_colors[i].r = 255 * pow(all_colors[i].r / 255.0, 2.2);
-		all_colors[i].g = 255 * pow(all_colors[i].g / 255.0, 2.2);
-		all_colors[i].b = 255 * pow(all_colors[i].b / 255.0, 2.2);
+		all_colors[i].r = from_gamma(all_colors[i].r / 255.0);
+		all_colors[i].g = from_gamma(all_colors[i].g / 255.0);
+		all_colors[i].b = from_gamma(all_colors[i].b / 255.0);
 	}
 
 	if (!process_opts(argc, argv)) {
@@ -263,24 +265,27 @@ int main(int argc, char *argv[])
 
 #define NUM_COLORS_PER_BLOCK 2
 	Color colors[NUM_COLORS_PER_BLOCK];
-	Color block_colors[200][200][NUM_COLORS_PER_BLOCK]; // TODO dynamically allocate
 
-#define BLOCK_PASSES 2
+#define BLOCK_PASSES 1
 	for (int y = 0; y < output.getHeight(); ++y) {
 		//fprintf(stderr, "\r%d%%", (100 * y + output.getHeight() / 2) / output.getHeight());
 		for (int x = 0; x < output.getWidth(); ++x) {
 			fprintf(stderr, "\rgenerating %.2f%%", 100.0 * (y * output.getWidth() + x) / (output.getHeight() * output.getWidth()));
 			double best_score = INFINITY;
 			int best_color_ix[2] = { 0, 1 };
+			Block& input_block = image->blockAt(x, y);
+			Block& output_block = output.blockAt(x, y);
 			for (int color0ix = 0; color0ix < NUM_COLORS - 1; ++color0ix) {
+				colors[0] = all_colors[color0ix];
+				input_block.setPalette(0, colors[0]);
 				for (int color1ix = color0ix + 1; color1ix < NUM_COLORS; ++color1ix) {
-					colors[0] = all_colors[color0ix];
 					colors[1] = all_colors[color1ix];
+					input_block.setPalette(1, colors[1]);
 					
-					generate(&image->blockAt(x, y), colors, &output.blockAt(x, y));
-					refine_genetically(&image->blockAt(x, y), colors, &output.blockAt(x, y), BLOCK_PASSES);
+					generate(&input_block, colors, &output_block);
+					refine_genetically(&input_block, &output_block, BLOCK_PASSES);
 
-					double score = evaluate(&image->blockAt(x, y), &output.blockAt(x, y));
+					double score = evaluate(&input_block, &output_block);
 					if (score < best_score) {
 						best_score = score;
 						best_color_ix[0] = color0ix;
@@ -296,16 +301,16 @@ perfect:
 
 			for (int c = 0; c < NUM_COLORS_PER_BLOCK; ++c) {
 				colors[c] = all_colors[best_color_ix[c]];
-				block_colors[y][x][c] = all_colors[best_color_ix[c]];;
+				input_block.setPalette(c, all_colors[best_color_ix[c]]);
 			}
-			generate(&image->blockAt(x, y), colors, &output.blockAt(x, y));
+			generate(&input_block, colors, &output_block);
 		}
 	}
 
 #if 1
 	// refine
 			//fprintf(stderr, "\rrefining   %.2f%%", 100.0 * (y * 8 + x) / (8 * 8));
-	refine_genetically(image, block_colors, &output);
+	refine_genetically(image, &output);
 #endif
 
 	fprintf(stderr, "\r%.2f%%", 100.0);
@@ -316,9 +321,9 @@ perfect:
 	// gamma the output image
 	for (int y = 0; y < output.getHeight()*8; ++y) {
 		for (int x = 0; x < output.getWidth()*8; ++x) {
-			output.pixelAt(x, y).r = 255 * pow(output.pixelAt(x, y).r / 255.0, 1.0/GAMMA);
-			output.pixelAt(x, y).g = 255 * pow(output.pixelAt(x, y).g / 255.0, 1.0/GAMMA);
-			output.pixelAt(x, y).b = 255 * pow(output.pixelAt(x, y).b / 255.0, 1.0/GAMMA);
+			output.pixelAt(x, y).r = to_gamma(output.pixelAt(x, y).r);
+			output.pixelAt(x, y).g = to_gamma(output.pixelAt(x, y).g);
+			output.pixelAt(x, y).b = to_gamma(output.pixelAt(x, y).b);
 		}
 	}
 
