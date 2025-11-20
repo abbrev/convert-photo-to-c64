@@ -169,7 +169,7 @@ static void save_image(FILE *pamfile, const Image *image)
 	pnm_freepamrow(tuplerow);
 }
 
-static double dither_weight = 2.0;
+static double dither_weight = 4.0;
 
 static bool process_opts(int argc, char *argv[])
 {
@@ -287,7 +287,7 @@ int main(int argc, char *argv[])
 		//fprintf(stderr, "\r%d%%", (100 * y + output.height / 2) / output.height);
 		for (int x = 0; x < output.width; ++x) {
 			fprintf(stderr, "\r%.2f%%", 100.0 * (y * output.width + x) / (output.height * output.width));
-			double best_score = 9999999999;
+			double best_score = INFINITY;
 			int best_color0ix = 0;
 			int best_color1ix = 1;
 			for (int color0ix = 0; color0ix < NUM_COLORS - 1; ++color0ix) {

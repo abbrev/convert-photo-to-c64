@@ -12,7 +12,7 @@ Usage: convert-photo-to-c64 [-d STRENGTH] <input.ppm >output.ppm
 
 Where:
   -d STRENGTH  Set the dither strength to STRENGTH%. Must not be less
-               than 0. Default is 200.
+               than 0. Default is 400.
 ....
 
 The default dither strength works reasonably well for most pictures, but some pictures may benefit from a strength higher or lower.

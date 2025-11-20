@@ -126,7 +126,7 @@ static void generate_with_dither(const Block *src, const Color colors[2], Block 
  */
 void generate(const Block *src, const Color colors[2], Block *gen, bool finalpass)
 {
-#if 0
+#if 1
 	// fill with nearest colors (no dithering)
 	bool perfect_score = true;
 	for (int y = 0; y < 8; ++y) {
