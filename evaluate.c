@@ -17,6 +17,33 @@ double evaluate_color(const Color *src, const Color *gen)
 	        (srgb[src->b] - rgb[gen->b]) * (srgb[src->b] - rgb[gen->b]));
 }
 
+static const int dither_pattern[9] = {
+	1, 2, 1,
+	2, 0, 2,
+	1, 2, 1,
+};
+
+#define CENTER_WEIGHT 10000 // some large value so small dither weights can be represented
+static int eval_weights[9] = {
+	0,0,0,
+	0,1,0,
+	0,0,0,
+};
+static int eval_weightsum = 1;
+
+void set_dither_weight(double w)
+{
+	int total_dither_weight = 0;
+	for (int i = 0; i < 9; ++i) {
+		total_dither_weight += dither_pattern[i];
+	}
+	eval_weightsum = 0;
+	for (int i = 0; i < 9; ++i) {
+		eval_weights[i] = (i == 4) ? CENTER_WEIGHT : dither_pattern[i] * CENTER_WEIGHT * w / total_dither_weight;
+		eval_weightsum += eval_weights[i];
+	}
+}
+
 // evaluate a single pixel
 double evaluate_single_pixel(const Block *src, const Block *gen, int x, int y)
 {
@@ -33,13 +60,6 @@ double evaluate_single_pixel(const Block *src, const Block *gen, int x, int y)
 		{-1, 1},{ 0, 1},{ 1, 1},
 	};
 
-	static const int weights[9] = {
-		 1, 2, 1,
-		 2, 4, 2,
-		 1, 2, 1,
-	};
-	static const int weightsum = 16; //32;
-
 	int rsum = 0;
 	int gsum = 0;
 	int bsum = 0;
@@ -53,15 +73,15 @@ double evaluate_single_pixel(const Block *src, const Block *gen, int x, int y)
 		if (yy < 0) yy = -yy;
 		else if (yy >= 8) yy = 15 - yy - 1;
 
-		rsum += (int)gen->pixels[yy][xx].r * weights[i];
-		gsum += (int)gen->pixels[yy][xx].g * weights[i];
-		bsum += (int)gen->pixels[yy][xx].b * weights[i];
+		rsum += (int)gen->pixels[yy][xx].r * eval_weights[i];
+		gsum += (int)gen->pixels[yy][xx].g * eval_weights[i];
+		bsum += (int)gen->pixels[yy][xx].b * eval_weights[i];
 	}
 
 	Color avgColor = {
-		rsum / weightsum,
-		gsum / weightsum,
-		bsum / weightsum,
+		rsum / eval_weightsum,
+		gsum / eval_weightsum,
+		bsum / eval_weightsum,
 	};
 
 	return evaluate_color(srcColor, &avgColor);

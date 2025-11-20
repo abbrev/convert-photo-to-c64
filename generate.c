@@ -68,7 +68,7 @@ static const Coord *get_shuffled_coords(void)
 }
 
 // Do up to this many genetic runs.
-#define GENETIC_RUNS 10//10000
+#define GENETIC_RUNS 100//10000
 
 // If this many consecutive genetic runs yields an unchanging block, return early.
 #define MIN_CONSTANT_GENETIC_RUNS 2

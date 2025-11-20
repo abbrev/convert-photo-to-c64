@@ -1,8 +1,12 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <limits.h>
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <unistd.h>
+
+#define HAVE_BOOL 1 // don't let pam.h define bool
 
 #include <pam.h>
 
@@ -165,6 +169,30 @@ static void save_image(FILE *pamfile, const Image *image)
 	pnm_freepamrow(tuplerow);
 }
 
+static double dither_weight = 1.0;
+
+static bool process_opts(int argc, char *argv[])
+{
+	int opt;
+	while ((opt = getopt(argc, argv, "w:")) != -1) {
+		switch (opt) {
+		case 'w': {
+				  double w = atof(optarg);
+				  if (w < 0 || w > 1000) {
+					  fprintf(stderr, "weight must be between 0%% and 1000%%\n");
+					  return false;
+				  }
+				  dither_weight = w / 100.;
+			  }
+			  break;
+		default:
+			return false;
+		}
+	}
+
+	return true;
+}
+
 #define GAMMA 2.2
 
 int main(int argc, char *argv[])
@@ -246,6 +274,12 @@ int main(int argc, char *argv[])
 		all_colors[i].g = 255 * pow(all_colors[i].g / 255.0, 2.2);
 		all_colors[i].b = 255 * pow(all_colors[i].b / 255.0, 2.2);
 	}
+
+	if (!process_opts(argc, argv)) {
+		exit(1);
+	}
+
+	set_dither_weight(dither_weight);
 
 	Color colors[2];
 

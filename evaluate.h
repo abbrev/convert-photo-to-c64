@@ -8,4 +8,6 @@ double evaluate_single_pixel(const Block *src, const Block *gen, int x, int y);
 double evaluate_pixel(const Block *src, const Block *gen, int x, int y);
 double evaluate(const Block *src, const Block *gen);
 
+void set_dither_weight(double w);
+
 #endif
