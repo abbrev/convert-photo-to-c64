@@ -23,32 +23,19 @@ A dither strength of 0 gives a posterized effect.
 In the standard "high-res" video mode, the Commodore 64 supports a palette of 16 colors and divides the screen into 8x8 pixel blocks.
 Each pixel in a block may be one of only two colors.
 
-This program looks at each block in the source image and attempts to find:
+This program looks at each block in the source image and attempts to find two Commodore 64 colors that best describe the colors in the source image.
+This is done by evaluating every pair of colors in a block.
+Pixels are arranged using the nearest colors and refined with a couple of passes; the exact pixel arrangement isn't too important at this point.
 
-* two Commodore 64 colors that best describe the colors in the source image, and
-* an arrangement of those two colors that best matches the source image.
+Once the optimal colors for each block are found, the image is genetically refined.
+Every pixel in the image is evaluated one at a time; each possible pixel color is evaluated and the best color is chosen.
+Once all pixels in the image have been refined, this process is repeated if any pixels have changed.
+Typically it takes only a handful of passes (10 or fewer) to genetically refine the image.
 
-This program uses brute-force matching to find the best colors.
-For each pair of colors, it finds the best arrangment of pixels for that pair.
-The pair that provides the best arrangement is chosen.
-
-The initial pixel arrangement for a given pair of colors is simply a checkerboard pattern.
-That arrangement is then refined genetically: a pixel is chosen at random, and if changing the pixel to the other color in the pair gives a better pixel arrangement, the other color is chosen instead.
-This algorithm is repeated at least once for each pixel in a block.
-If the block does not change after a few iterations of this algorithm, we assume we have found a near-optimal pixel arrangement.
-
-== Future improvements
-
-The evaluator functions are at the heart of the algorithms.
-They determine which block is "best".
-
-Currently the evaluators use the linear RGB values in the source and generated images.
-However, other color spaces (such as YUV) may yield better results.
-
-Also, the pixel evaluator may be improved.
-It currently uses a 3x3 convolution filter to allow neighboring pixels to influence the score of a pixel.
-This causes the generated block to be dithered.
-Alternative convolution coefficients give different results.
+To evaluate a pixel, the difference between its color and the source color is taken.
+The difference between the colors of the surrounding pixels and their source colors are also taken.
+The differences of the surrounding pixels are averaged and multiplied by the dither weight and then added with the difference of the center pixel.
+A smaller difference between the source results in a lower (better) score.
 
 == Examples
 
@@ -77,3 +64,16 @@ Alternative convolution coefficients give different results.
 |image:starwars.png[]       |image:starwars.hires.png[]    |image:starwars.multicolor.png[]
 |image:webb.png[]           |image:webb.hires.png[]        |image:webb.multicolor.png[]
 |===
+
+== Future improvements
+
+The evaluator functions are at the heart of the algorithms.
+They determine which block is "best".
+
+Currently the evaluators use the linear RGB values in the source and generated images.
+However, other color spaces (such as YUV) may yield better results.
+
+Also, the pixel evaluator may be improved.
+It currently uses a 3x3 convolution filter to allow neighboring pixels to influence the score of a pixel.
+This causes the generated block to be dithered.
+Alternative convolution coefficients give different results.

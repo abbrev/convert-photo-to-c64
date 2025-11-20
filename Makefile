@@ -1,7 +1,8 @@
-CFLAGS += -O2 -Wall -std=gnu11 #-ggdb3
+CFLAGS += -O2 -Wall -Wextra -std=gnu11 #-ggdb3
+CXXFLAGS += -O2 -Wall -Wextra -std=gnu++11 #-ggdb3
 LDFLAGS += -O2 #-ggdb3
 LDLIBS := -lnetpbm -lm #-lefence
-LD := $(CC)
+LD := $(CXX)
 
 all: convert-photo-to-c64
 

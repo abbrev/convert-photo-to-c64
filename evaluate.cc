@@ -27,7 +27,6 @@ static const int dither_pattern[DITHER_KERNEL_SIZE2] = {
 	0, 8, 0,
 };
 
-#define CENTER_WEIGHT 10000 // some large value so small dither weights can be represented
 static int eval_weights[DITHER_KERNEL_SIZE2] = {
 	0,0,0,
 	0,1,0,
@@ -43,7 +42,6 @@ static const int dither_pattern[DITHER_KERNEL_SIZE2] = {
 	0, 1, 1, 1, 0,
 };
 
-#define CENTER_WEIGHT 10000 // some large value so small dither weights can be represented
 static int eval_weights[DITHER_KERNEL_SIZE2] = {
 	0,0,0,0,0,
 	0,0,0,0,0,
@@ -52,6 +50,8 @@ static int eval_weights[DITHER_KERNEL_SIZE2] = {
 	0,0,0,0,0,
 };
 #endif
+
+#define CENTER_WEIGHT 10000 // some large value so small dither weights can be represented
 static int eval_weightsum = 1;
 
 void set_dither_weight(double w)
@@ -112,17 +112,85 @@ double evaluate_single_pixel(const Block *src, const Block *gen, int x, int y)
 	}
 
 	Color avgColor = {
-		rsum / eval_weightsum,
-		gsum / eval_weightsum,
-		bsum / eval_weightsum,
+		(uint8_t)(rsum / eval_weightsum),
+		(uint8_t)(gsum / eval_weightsum),
+		(uint8_t)(bsum / eval_weightsum),
+	};
+
+	return evaluate_color(srcColor, &avgColor);
+}
+
+// evaluate a single pixel
+double evaluate_single_pixel(const Image *src, const Image *gen, int x, int y)
+{
+	if (x < 0 || 8*gen->getWidth()  <= x ||
+	    y < 0 || 8*gen->getHeight() <= y) return 0;
+
+	const Color *srcColor = &src->pixelAt(x, y);
+
+	// compute weighted average color using neighboring pixels
+	// XXX coords can be removed by refactoring the loop and weights below
+#if DITHER_KERNEL_SIZE == 3
+	static const struct { int x, y; } coords[DITHER_KERNEL_SIZE2] = {
+		{-1,-1},{ 0,-1},{ 1,-1},
+		{-1, 0},{ 0, 0},{ 1, 0},
+		{-1, 1},{ 0, 1},{ 1, 1},
+	};
+#else
+	static const struct { int x, y; } coords[DITHER_KERNEL_SIZE2] = {
+		{-2,-2},{-1,-2},{ 0,-2},{ 1,-2},{ 2,-2},
+		{-2,-1},{-1,-1},{ 0,-1},{ 1,-1},{ 2,-1},
+		{-2, 0},{-1, 0},{ 0, 0},{ 1, 0},{ 2, 0},
+		{-2, 1},{-1, 1},{ 0, 1},{ 1, 1},{ 2, 1},
+		{-2, 2},{-1, 2},{ 0, 2},{ 1, 2},{ 2, 2},
+	};
+#endif
+
+	int rsum = 0;
+	int gsum = 0;
+	int bsum = 0;
+	for (int i = 0; i < DITHER_KERNEL_SIZE2; ++i) {
+		int xx = x + coords[i].x;
+		int yy = y + coords[i].y;
+
+		// mirror at the edges
+		if (xx < 0) xx = -xx;
+		else if (xx >= 8*gen->getWidth())  xx = 2*(8*gen->getWidth()  - 1) - xx;
+		if (yy < 0) yy = -yy;
+		else if (yy >= 8*gen->getHeight()) yy = 2*(8*gen->getHeight() - 1) - yy;
+
+		rsum += (int)gen->pixelAt(xx, yy).r * eval_weights[i];
+		gsum += (int)gen->pixelAt(xx, yy).g * eval_weights[i];
+		bsum += (int)gen->pixelAt(xx, yy).b * eval_weights[i];
+	}
+
+	Color avgColor = {
+		(uint8_t)(rsum / eval_weightsum),
+		(uint8_t)(gsum / eval_weightsum),
+		(uint8_t)(bsum / eval_weightsum),
 	};
 
 	return evaluate_color(srcColor, &avgColor);
 }
 
 // evaluate a pixel and its neighbors that are affected by it
-// apparently this doesn't work very well....
 double evaluate_pixel(const Block *src, const Block *gen, int x, int y)
+{
+#if 0
+	return evaluate_single_pixel(src, gen, x, y);
+#else
+	double score = 0;
+	for (int yy = -1; yy <= 1; ++yy) {
+		for (int xx = -1; xx <= 1; ++xx) {
+			score += evaluate_single_pixel(src, gen, x+xx, y+yy);
+		}
+	}
+	return score;
+#endif
+}
+
+// evaluate a pixel and its neighbors that are affected by it
+double evaluate_pixel(const Image *src, const Image *gen, int x, int y)
 {
 	double score = 0;
 	for (int yy = -1; yy <= 1; ++yy) {
@@ -153,7 +221,7 @@ double evaluate(const Block *src, const Block *gen)
 	double error = 0;
 	for (int y = 0; y < 8; ++y) {
 		for (int x = 0; x < 8; ++x) {
-			error += evaluate_single_pixel(src, gen, x, y);
+			error += evaluate_pixel(src, gen, x, y);
 		}
 	}
 	return error;

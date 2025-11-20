@@ -3,9 +3,7 @@
 
 #include <stdint.h>
 
-typedef struct {
-	uint8_t r,g,b;
-} Color;
+#include "color.h"
 
 // we may support 4x8 blocks in the future
 typedef struct {
