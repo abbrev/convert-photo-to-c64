@@ -17,29 +17,52 @@ double evaluate_color(const Color *src, const Color *gen)
 	        (srgb[src->b] - rgb[gen->b]) * (srgb[src->b] - rgb[gen->b]));
 }
 
-static const int dither_pattern[9] = {
-	0, 1, 0,
-	1, 0, 1,
-	0, 1, 0,
+#define DITHER_KERNEL_SIZE2 (DITHER_KERNEL_SIZE*DITHER_KERNEL_SIZE)
+
+#if 1
+#define DITHER_KERNEL_SIZE 3
+static const int dither_pattern[DITHER_KERNEL_SIZE2] = {
+	0, 8, 0,
+	8, 0, 8,
+	0, 8, 0,
 };
 
 #define CENTER_WEIGHT 10000 // some large value so small dither weights can be represented
-static int eval_weights[9] = {
+static int eval_weights[DITHER_KERNEL_SIZE2] = {
 	0,0,0,
 	0,1,0,
 	0,0,0,
 };
+#else
+#define DITHER_KERNEL_SIZE 5
+static const int dither_pattern[DITHER_KERNEL_SIZE2] = {
+	0, 1, 1, 1, 0,
+	1, 0, 9, 0, 1,
+	1, 9, 0, 9, 1,
+	1, 0, 9, 0, 1,
+	0, 1, 1, 1, 0,
+};
+
+#define CENTER_WEIGHT 10000 // some large value so small dither weights can be represented
+static int eval_weights[DITHER_KERNEL_SIZE2] = {
+	0,0,0,0,0,
+	0,0,0,0,0,
+	0,0,1,0,0,
+	0,0,0,0,0,
+	0,0,0,0,0,
+};
+#endif
 static int eval_weightsum = 1;
 
 void set_dither_weight(double w)
 {
 	int total_dither_weight = 0;
-	for (int i = 0; i < 9; ++i) {
+	for (int i = 0; i < DITHER_KERNEL_SIZE2; ++i) {
 		total_dither_weight += dither_pattern[i];
 	}
 	eval_weightsum = 0;
-	for (int i = 0; i < 9; ++i) {
-		eval_weights[i] = (i == 4) ? CENTER_WEIGHT : dither_pattern[i] * CENTER_WEIGHT * w / total_dither_weight;
+	for (int i = 0; i < DITHER_KERNEL_SIZE2; ++i) {
+		eval_weights[i] = (i == DITHER_KERNEL_SIZE2/2) ? CENTER_WEIGHT : dither_pattern[i] * CENTER_WEIGHT * w / total_dither_weight;
 		eval_weightsum += eval_weights[i];
 	}
 }
@@ -54,16 +77,26 @@ double evaluate_single_pixel(const Block *src, const Block *gen, int x, int y)
 
 	// compute weighted average color using neighboring pixels
 	// XXX coords can be removed by refactoring the loop and weights below
-	static const struct { int x, y; } coords[9] = {
+#if DITHER_KERNEL_SIZE == 3
+	static const struct { int x, y; } coords[DITHER_KERNEL_SIZE2] = {
 		{-1,-1},{ 0,-1},{ 1,-1},
 		{-1, 0},{ 0, 0},{ 1, 0},
 		{-1, 1},{ 0, 1},{ 1, 1},
 	};
+#else
+	static const struct { int x, y; } coords[DITHER_KERNEL_SIZE2] = {
+		{-2,-2},{-1,-2},{ 0,-2},{ 1,-2},{ 2,-2},
+		{-2,-1},{-1,-1},{ 0,-1},{ 1,-1},{ 2,-1},
+		{-2, 0},{-1, 0},{ 0, 0},{ 1, 0},{ 2, 0},
+		{-2, 1},{-1, 1},{ 0, 1},{ 1, 1},{ 2, 1},
+		{-2, 2},{-1, 2},{ 0, 2},{ 1, 2},{ 2, 2},
+	};
+#endif
 
 	int rsum = 0;
 	int gsum = 0;
 	int bsum = 0;
-	for (int i = 0; i < 9; ++i) {
+	for (int i = 0; i < DITHER_KERNEL_SIZE2; ++i) {
 		int xx = x + coords[i].x;
 		int yy = y + coords[i].y;
 

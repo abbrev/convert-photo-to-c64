@@ -169,7 +169,7 @@ static void save_image(FILE *pamfile, const Image *image)
 	pnm_freepamrow(tuplerow);
 }
 
-static double dither_weight = 1.0;
+static double dither_weight = 2.0;
 
 static bool process_opts(int argc, char *argv[])
 {
@@ -178,8 +178,8 @@ static bool process_opts(int argc, char *argv[])
 		switch (opt) {
 		case 'd': {
 				  double d = atof(optarg);
-				  if (d < 0 || d > 1000) {
-					  fprintf(stderr, "dither strength must be between 0 and 1000\n");
+				  if (d < 0) {
+					  fprintf(stderr, "Error: dither strength must not be less than 0\n");
 					  return false;
 				  }
 				  dither_weight = d / 100.;
@@ -295,7 +295,7 @@ int main(int argc, char *argv[])
 					colors[0] = all_colors[color0ix];
 					colors[1] = all_colors[color1ix];
 					
-					generate(&BLOCKAT(x, y, &image), colors, &BLOCKAT(x, y, &output));
+					generate(&BLOCKAT(x, y, &image), colors, &BLOCKAT(x, y, &output), false);
 					double score = evaluate(&BLOCKAT(x, y, &image), &BLOCKAT(x, y, &output));
 					if (score < best_score) {
 						best_score = score;
@@ -310,7 +310,7 @@ int main(int argc, char *argv[])
 perfect:
 			colors[0] = all_colors[best_color0ix];
 			colors[1] = all_colors[best_color1ix];
-			generate(&BLOCKAT(x, y, &image), colors, &BLOCKAT(x, y, &output));
+			generate(&BLOCKAT(x, y, &image), colors, &BLOCKAT(x, y, &output), true);
 		}
 	}
 	fprintf(stderr, "\r%.2f%%", 100.0);

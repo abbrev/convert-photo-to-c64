@@ -11,11 +11,11 @@ The output image adheres to the color palette and pixel block restrictions of th
 Usage: convert-photo-to-c64 [-d STRENGTH] <input.ppm >output.ppm
 
 Where:
-  -d STRENGTH  Set the dither strength to STRENGTH%. Valid range is 0 to
-               1000. Default is 100.
+  -d STRENGTH  Set the dither strength to STRENGTH%. Must not be less
+               than 0. Default is 200.
 ....
 
-The default dither strength of 100 works reasonably well for most pictures, but some pictures may benefit from a strength higher or lower than 100.
+The default dither strength works reasonably well for most pictures, but some pictures may benefit from a strength higher or lower.
 A dither strength of 0 gives a posterized effect.
 
 == How it works

@@ -68,19 +68,20 @@ static const Coord *get_shuffled_coords(void)
 }
 
 // Do up to this many genetic runs.
-#define GENETIC_RUNS 100//10000
+#define GENETIC_RUNS 10//10000
 
 // If this many consecutive genetic runs yields an unchanging block, return early.
-#define MIN_CONSTANT_GENETIC_RUNS 2
+#define MIN_CONSTANT_GENETIC_RUNS 3
 
 /*
  * Genetically refine a block.
  */
-static void refine_genetically(const Block *src, const Color colors[2], Block *gen)
+static void refine_genetically(const Block *src, const Color colors[2], Block *gen, bool finalpass)
 {
 	int last_change = 0;
+	int runs = finalpass ? GENETIC_RUNS : 2;
 
-	for (int i = 0; i < GENETIC_RUNS; ++i) {
+	for (int i = 0; i < runs; ++i) {
 		const Coord *coords = get_shuffled_coords();
 
 		for (int j = 0; j < 8*8; ++j) {
@@ -123,7 +124,7 @@ static void generate_with_dither(const Block *src, const Color colors[2], Block 
 /*
  * Generate a block with the given colors.
  */
-void generate(const Block *src, const Color colors[2], Block *gen)
+void generate(const Block *src, const Color colors[2], Block *gen, bool finalpass)
 {
 #if 0
 	// fill with nearest colors (no dithering)
@@ -157,5 +158,5 @@ void generate(const Block *src, const Color colors[2], Block *gen)
 	}
 #endif
 	//generate_with_dither(src, colors, gen);
-	refine_genetically(src, colors, gen);
+	refine_genetically(src, colors, gen, finalpass);
 }
