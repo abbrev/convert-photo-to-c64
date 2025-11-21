@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <limits.h>
@@ -37,6 +38,49 @@ enum GfxMode {
 static GfxMode gfx_mode = MULTICOLOR;
 static int bgcolorix = 0xB;
 static int num_palette_colors = NUM_COLORS;
+
+struct Palette {
+	const char *name;
+	Color colors[NUM_COLORS];
+};
+
+static Palette custom_palette;
+
+static bool load_palette(const char *filename)
+{
+	bool ret = false;
+	char line[9001];
+
+	FILE *f = fopen(filename, "r");
+	if (!f) {
+		fprintf(stderr, "Error: cannot open \"%s\": %s\n", filename, strerror(errno));
+		return false;
+	}
+
+	int c = 0;
+	for (int lineno = 1; fgets(line, sizeof line, f); ++lineno) {
+		int r, g, b;
+		if (line[0] == '#' || line[0] == '\n') {
+			continue;
+		}
+		if (sscanf(line, "%x %x %x", &r, &g, &b) != 3) {
+			fprintf(stderr, "Error: malformed palette file at line %d\n", lineno);
+			goto out;
+		}
+		if (c >= NUM_COLORS) {
+			fprintf(stderr, "Error: too many colors\n");
+			goto out;
+		}
+		custom_palette.colors[c] = { (double)r, (double)g, (double)b, c };
+		++c;
+	}
+	num_palette_colors = c;
+	ret = true;
+
+out:
+	fclose(f);
+	return ret;
+}
 
 static Image *load_image(FILE *pamfile, int block_width)
 {
@@ -164,11 +208,6 @@ static void save_image(FILE *pamfile, const Image *image)
 	pnm_freepamrow(tuplerow);
 }
 
-struct Palette {
-	const char *name;
-	Color colors[NUM_COLORS];
-};
-
 static Palette palettes[] = {
 	{
 		"colodore",
@@ -221,7 +260,7 @@ static double saturation = 1.0;
 static bool process_opts(int argc, char *argv[])
 {
 	int opt;
-	while ((opt = getopt(argc, argv, "b:d:m:p:s:" /*"P:"*/)) != -1) {
+	while ((opt = getopt(argc, argv, "b:d:m:p:s:P:")) != -1) {
 		switch (opt) {
 			case 'b': {
 				int b = atoi(optarg);
@@ -265,10 +304,14 @@ static bool process_opts(int argc, char *argv[])
 				}
 				break;
 			}
-			#if 0
+			#if 1
 			case 'P': {
 				const char *filename = optarg;
 				// TODO read palette from file
+				if (!load_palette(filename)) {
+					return false;
+				}
+				palette = &custom_palette;
 				break;
 			}
 			#endif
