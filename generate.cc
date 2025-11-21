@@ -235,9 +235,6 @@ static const Coord *get_shuffled_coords(int width, int height)
 // Do up to this many genetic runs.
 #define GENETIC_RUNS 100//10000
 
-// If this many consecutive genetic runs yields an unchanging block, return early.
-#define MIN_CONSTANT_GENETIC_RUNS 3
-
 /*
  * Genetically refine a block.
  */
@@ -255,7 +252,7 @@ void refine_genetically(const Block *src, Block *gen, int passes)
 		}
 #if 1
 		// If no changes in a few passes, abort and say it's good.
-		if (GENETIC_RUNS > MIN_CONSTANT_GENETIC_RUNS && i - last_change >= MIN_CONSTANT_GENETIC_RUNS) {
+		if (i - last_change >= 1) {
 #if 0
 			if (i >= 10) {
 				fprintf(stderr, "made it to %d iterations before no change\n", i+1);
@@ -264,13 +261,16 @@ void refine_genetically(const Block *src, Block *gen, int passes)
 			break;
 		}
 #if 0
-		if (i == GENETIC_RUNS-1) {
+		if (i == passes-1) {
 			fprintf(stderr, "made it all the way to %d iterations\n", i+1);
 		}
 #endif
 #endif
 	}
 }
+
+// If this many consecutive genetic runs yields an unchanging block, return early.
+#define MIN_CONSTANT_GENETIC_RUNS 3
 
 void refine_genetically(const Image *src, Image *gen)
 {
