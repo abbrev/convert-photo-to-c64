@@ -46,6 +46,8 @@ public:
 	int getBlockWidth() const { return blockWidth; }
 	void setBlockWidth(int w) { blockWidth = w; }
 
+	int getBlockHeight() const { return 8; }
+
 private:
 	int width, height;
 	int blockWidth;

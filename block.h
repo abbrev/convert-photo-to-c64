@@ -5,7 +5,7 @@
 
 #include "color.h"
 
-typedef struct {
+struct Block {
 	const Color& pixelAt(int x, int y) const { return pixels[y][x]; }
 	      Color& pixelAt(int x, int y)       { return pixels[y][x]; }
 
@@ -26,6 +26,6 @@ private:
 	int width = 8;
 	int paletteSize;
 	Color palette[4];
-} Block;
+};
 
 #endif

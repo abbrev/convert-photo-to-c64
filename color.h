@@ -65,7 +65,7 @@ struct Color {
 	double g()  const { return g_;  }
 	double b()  const { return b_;  }
 
-	double ix() const { return ix_; }
+	int ix() const { return ix_; }
 
 	double yuv_y()  const { return yuv.y;  }
 	double yuv_u()  const { return yuv.u;  }
