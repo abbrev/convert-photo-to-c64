@@ -19,14 +19,16 @@ extern "C" {
 #include "evaluate.h"
 #include "generate.h"
 
+#define GAMMA 2.2
+
 static double from_gamma(double d)
 {
-	return pow(d, 2.2);
+	return pow(d, GAMMA);
 }
 
 static double to_gamma(double d)
 {
-	return pow(d, 1/2.2);
+	return pow(d, 1/GAMMA);
 }
 
 
@@ -405,7 +407,7 @@ int main(int argc, char *argv[])
 	image->setBlockWidth(block_width);
 	output.setBlockWidth(block_width);
 
-#define BLOCK_PASSES 2
+#define BLOCK_PASSES 10
 	for (int y = 0; y < output.getHeight(); ++y) {
 		//fprintf(stderr, "\r%d%%", (100 * y + output.getHeight() / 2) / output.getHeight());
 		for (int x = 0; x < output.getWidth(); ++x) {

@@ -5,7 +5,6 @@
 
 #include "color.h"
 
-// we may support 4x8 blocks in the future
 typedef struct {
 	const Color& pixelAt(int x, int y) const { return pixels[y][x]; }
 	      Color& pixelAt(int x, int y)       { return pixels[y][x]; }
@@ -18,6 +17,8 @@ typedef struct {
 
 	int getWidth() const { return width; }
 	void setWidth(int w) { width = w; }
+
+	int getHeight() const { return 8; }
 
 private:
 	Color pixels[8][8];

@@ -7,6 +7,57 @@
 #include "generate.h"
 #include "evaluate.h"
 
+static bool refine_pixel_by_swapping(const Block *src, Block *gen, int x, int y)
+{
+	bool change = false;
+
+	// try swapping current pixel with neighbors
+	for (int yoff = -1; yoff <= 1; ++yoff) {
+		for (int xoff = -1; xoff <= 1; ++xoff) {
+			if (xoff == 0 && yoff == 0) {
+				continue;
+			}
+
+			int ox = x + xoff;
+			int oy = y + yoff;
+			if (ox < 0 || src->getWidth() <= ox ||
+			    oy < 0 || src->getHeight() <= oy) {
+				continue;
+			}
+
+			Color& pixel = gen->pixelAt(x, y);
+			Color& other_pixel = gen->pixelAt(ox, oy);
+
+			if (pixel == other_pixel) {
+				// they're the same color; no need to swap
+				continue;
+			}
+
+			double before = evaluate_pixel(src, gen, x, y);
+
+			// swap them
+			{
+				Color t = other_pixel;
+				other_pixel = pixel;
+				pixel = t;
+			}
+
+			double after = evaluate_pixel(src, gen, x, y);
+
+			if (after > before) {
+				// swap them back
+				Color t = other_pixel;
+				other_pixel = pixel;
+				pixel = t;
+			} else {
+				change = true;
+			}
+		}
+	}
+
+	return change;
+}
+
 /*
  * Refine one pixel to maximize the score for the whole block.
  */
@@ -17,6 +68,9 @@ static bool refine_pixel(const Block *src, Block *gen, int x, int y)
 	Color original_color = pixel;
 	Color best_color = pixel;
 	double best_score = INFINITY;
+	bool change = false;
+
+	change = refine_pixel_by_swapping(src, gen, x, y);
 
 	for (int i = 0; i < src->getPaletteSize(); ++i) {
 		pixel = src->getPalette(i);
@@ -28,7 +82,23 @@ static bool refine_pixel(const Block *src, Block *gen, int x, int y)
 	}
 
 	pixel = best_color;
-	return best_color != original_color;
+
+	if (pixel != original_color) {
+		change = true;
+	}
+
+	return change;
+}
+
+static bool color_in_palette(const Color& c, const Block& block)
+{
+	for (int i = 0; i < block.getPaletteSize(); ++i) {
+		const Color& p = block.getPalette(i);
+		if (c == p) {
+			return true;
+		}
+	}
+	return false;
 }
 
 static bool refine_pixel_by_swapping(const Image *src, Image *gen, int x, int y)
@@ -42,7 +112,7 @@ static bool refine_pixel_by_swapping(const Image *src, Image *gen, int x, int y)
 
 	// try swapping current pixel with neighbors
 	for (int yoff = -1; yoff <= 1; ++yoff) {
-		for (int xoff = -1; xoff <= 2; ++xoff) {
+		for (int xoff = -1; xoff <= 1; ++xoff) {
 			if (xoff == 0 && yoff == 0) {
 				continue;
 			}
@@ -65,8 +135,9 @@ static bool refine_pixel_by_swapping(const Image *src, Image *gen, int x, int y)
 				// they're the same color; no need to swap
 				continue;
 			}
-			if (&other_block != &gen_block) {
-				// TODO check palettes of gen_block and other_block to see if pixel and other_pixel are in both blocks' palettes
+			// if pixels fall in different blocks, it's ok as long as both pixels' colors are found in both blocks' palettes
+			if (&other_block != &gen_block &&
+			    (!color_in_palette(pixel, other_block) || !color_in_palette(other_pixel, gen_block))) {
 				continue;
 			}
 
