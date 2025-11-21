@@ -4,10 +4,25 @@
 
 #include "evaluate.h"
 
-
 double evaluate_color(const Color& src, const Color& gen)
 {
 #if 1
+#define L_WEIGHT 1.0 // TODO adjust as needed
+	double l_diff = (src.oklab_l() - gen.oklab_l()) * L_WEIGHT;
+	double a_diff = (src.oklab_a() - gen.oklab_a());
+	double b_diff = (src.oklab_b() - gen.oklab_b());
+
+	return (l_diff * l_diff) +
+	       (a_diff * a_diff) + (b_diff * b_diff);
+#elif 1
+#define I_WEIGHT 3.0 // TODO adjust as needed
+	double i_diff = (src.i() - gen.i()) * I_WEIGHT;
+	double p_diff = (src.p() - gen.p());
+	double t_diff = (src.t() - gen.t());
+
+	return (i_diff * i_diff) +
+	       (p_diff * p_diff) + (t_diff * t_diff);
+#elif 1
 	// calculate Euclidean distance in YUV color space (better than in RGB color space)
 
 #define Y_WEIGHT 1.5 // TODO adjust as needed
@@ -129,12 +144,12 @@ double evaluate_single_pixel(const Block *src, const Block *gen, int x, int y)
 	if (bsum < 0) bsum = 0;
 	else if (bsum > 1) bsum = 1;
 
-	Color avgColor = {
+	Color avgColor = Color(
 		rsum,
 		gsum,
 		bsum,
-		0,
-	};
+		0
+	);
 
 	return evaluate_color(srcColor, avgColor);
 }
@@ -194,12 +209,12 @@ double evaluate_single_pixel(const Image *src, const Image *gen, int x, int y)
 	if (bsum < 0) bsum = 0;
 	else if (bsum > 1) bsum = 1;
 
-	Color avgColor = {
+	Color avgColor = Color(
 		rsum,
 		gsum,
 		bsum,
-		0,
-	};
+		0
+	);
 
 	return evaluate_color(srcColor, avgColor);
 }

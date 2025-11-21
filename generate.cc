@@ -264,7 +264,7 @@ void generate(const Block *src, Block *gen)
 {
 #if 0
 	*gen = *src;
-#elif 1
+#elif 0
 	// dither
 	Color avg;
 	for (int c = 0; c < src->getPaletteSize(); ++c) {
