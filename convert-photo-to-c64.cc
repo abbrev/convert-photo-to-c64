@@ -35,11 +35,10 @@ enum GfxMode {
 #define NUM_COLORS 16
 
 static GfxMode gfx_mode = MULTICOLOR;
-static int block_width = 4;
 static int bgcolorix = 0xB;
 static int num_palette_colors = NUM_COLORS;
 
-static Image *load_image(FILE *pamfile)
+static Image *load_image(FILE *pamfile, int block_width)
 {
 	Image *image = nullptr;
 
@@ -137,7 +136,7 @@ static void save_image(FILE *pamfile, const Image *image)
 	outpam.len = sizeof outpam;
 	outpam.file = pamfile;
 	outpam.format = PPM_FORMAT;
-	outpam.width = image->getWidth() * block_width;
+	outpam.width = image->getWidth() * image->getBlockWidth();
 	outpam.height = image->getHeight() * 8;
 	outpam.depth = 3;
 	outpam.maxval = 255;
@@ -162,22 +161,6 @@ static void save_image(FILE *pamfile, const Image *image)
 		pnm_writepamrow(&outpam, tuplerow);
 	}
 
-#if 0
-	for (int y = 0; y < image->getHeight(); ++y) {
-		for (int yy = 0; yy < 8; ++yy) {
-			for (int x = 0; x < image->getWidth(); ++x) {
-				const Block *b = &image->blockAt(x, y);
-				for (int xx = 0; xx < block_width; ++xx) {
-					const Color *p = &b->pixels[yy][xx];
-					tuplerow[block_width*x+xx][0] = p->r;
-					tuplerow[block_width*x+xx][1] = p->g;
-					tuplerow[block_width*x+xx][2] = p->b;
-				}
-			}
-			pnm_writepamrow(&outpam, tuplerow);
-		}
-	}
-#endif
 	pnm_freepamrow(tuplerow);
 }
 
@@ -316,18 +299,27 @@ int main(int argc, char *argv[])
 	srand(time(NULL));
 	pnm_init(&argc, argv);
 
-	int color0max = num_palette_colors - 2;
-	int color1max = num_palette_colors - 1;
-	int num_colors_per_block = 3;
+	int block_width;
+	int color0max;
+	int color1max;
+	int num_colors_per_block;
 
 	if (gfx_mode == HIRES) {
 		color0max = num_palette_colors - 1;
-		color1max = num_palette_colors;
+		color1max = num_palette_colors - 0;
 		num_colors_per_block = 2;
 		block_width = 8;
+	} else if (gfx_mode == MULTICOLOR) {
+		color0max = num_palette_colors - 2;
+		color1max = num_palette_colors - 1;
+		num_colors_per_block = 4;
+		block_width = 4;
+	} else {
+		fprintf(stderr, "Error: programming error!\n");
+		return 1;
 	}
 
-	Image *image = load_image(stdin);
+	Image *image = load_image(stdin, block_width);
 
 	//fprintf(stderr, "%s (%d)\n", __FILE__, __LINE__);
 	if (!image) {
@@ -396,10 +388,10 @@ int main(int argc, char *argv[])
 
 					int color2ix = color1ix + 1;
 					if (gfx_mode == HIRES) {
-						color2ix = NUM_COLORS - 1;
+						color2ix = num_palette_colors - 1;
 					}
 
-					for (; color2ix < NUM_COLORS; ++color2ix) {
+					for (; color2ix < num_palette_colors; ++color2ix) {
 						input_block.setPalette(2, palette->colors[color2ix]);
 						output_block.setPalette(2, palette->colors[color2ix]);
 
