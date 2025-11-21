@@ -4,16 +4,56 @@
 
 #include "evaluate.h"
 
+// see http://www-labs.iro.umontreal.ca/~mignotte/IFT2425/Documents/EfficientApproximationArctgFunction.pdf
+//#define ATAN(x) ((M_PI/4) * (x) + 0.273*(x)*(1 - abs((x))))
+#define ATAN(x) (0.273*(x)*(((M_PI/4/0.273)+1) - abs((x)))) // refactored
+
+static double my_atan2(double q, double i)
+{
+	double r;
+	if (abs(q) > abs(i)) {
+		r = M_PI/2 - ATAN(abs(i) / abs(q));         // arctan(z) = 90-arctan(1/z)
+	} else {
+		r = (i == 0) ? 0 : ATAN(abs(q) / abs(i));   // arctan(z)
+	}
+	r = (i < 0) ? M_PI - r : r;                         // arctan(-z) = -arctan(z)
+	return (q < 0) ? -r : r;                            // arctan(-z) = -arctan(z)
+}
+
 double evaluate_color(const Color& src, const Color& gen)
 {
 #if 1
-#define Y_WEIGHT 4.0 // TODO adjust as needed
+#define Y_WEIGHT 8.0 // TODO adjust as needed
 	double  y_diff = (src.ydbdr_y()  - gen.ydbdr_y()) * Y_WEIGHT;
-	double db_diff = (src.ydbdr_db() - gen.ydbdr_db());
-	double dr_diff = (src.ydbdr_dr() - gen.ydbdr_dr());
+
+	double src_ydbdr_db = src.ydbdr_db();
+	double src_ydbdr_dr = src.ydbdr_dr();
+	double gen_ydbdr_db = gen.ydbdr_db();
+	double gen_ydbdr_dr = gen.ydbdr_dr();
+
+	double src_theta = my_atan2(src_ydbdr_db, src_ydbdr_dr);
+	double gen_theta = my_atan2(gen_ydbdr_db, gen_ydbdr_dr);
+	double theta_diff = abs(src_theta - gen_theta);
+	if (theta_diff < 0) {
+		theta_diff += 2*M_PI;
+	} else if (theta_diff > 2*M_PI) {
+		theta_diff -= 2*M_PI;
+	}
+
+	double arc_factor = 1 + theta_diff - theta_diff/M_PI;
+#if 0
+	fprintf(stderr, "src=(%+5.3f, %+5.3f):%+5.3f gen=(%+5.3f, %+5.3f):%+5.3f diff=%+5.3f arc_factor=%+5.3f\n",
+	        src.ydbdr_db(), src.ydbdr_dr(), src_theta,
+		gen.ydbdr_db(), gen.ydbdr_dr(), gen_theta,
+		theta_diff,
+		arc_factor);
+#endif
+
+	double db_diff = (src_ydbdr_db - gen_ydbdr_db) * arc_factor;
+	double dr_diff = (src_ydbdr_dr - gen_ydbdr_dr) * arc_factor;
 
 	return ( y_diff *  y_diff) +
-	       (db_diff * db_diff) + (dr_diff * dr_diff);
+	       ((db_diff * db_diff) + (dr_diff * dr_diff));
 #elif 1
 #define L_WEIGHT 1.0 // TODO adjust as needed
 	double l_diff = (src.oklab_l() - gen.oklab_l()) * L_WEIGHT;
