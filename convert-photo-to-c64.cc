@@ -407,7 +407,7 @@ int main(int argc, char *argv[])
 	image->setBlockWidth(block_width);
 	output.setBlockWidth(block_width);
 
-#define BLOCK_PASSES 10
+#define BLOCK_PASSES 2
 	for (int y = 0; y < output.getHeight(); ++y) {
 		//fprintf(stderr, "\r%d%%", (100 * y + output.getHeight() / 2) / output.getHeight());
 		for (int x = 0; x < output.getWidth(); ++x) {

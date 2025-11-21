@@ -62,7 +62,7 @@ static bool refine_pixel_by_swapping(const Block *src, Block *gen, int x, int y)
 /*
  * Refine one pixel to maximize the score for the whole block.
  */
-static bool refine_pixel(const Block *src, Block *gen, int x, int y)
+static bool refine_pixel(const Block *src, Block *gen, int x, int y, bool swap = true)
 {
 	Color& pixel = gen->pixelAt(x, y);
 
@@ -87,7 +87,9 @@ static bool refine_pixel(const Block *src, Block *gen, int x, int y)
 		change = true;
 	}
 
-	change |= refine_pixel_by_swapping(src, gen, x, y);
+	if (swap) {
+		change |= refine_pixel_by_swapping(src, gen, x, y);
+	}
 
 	return change;
 }
@@ -241,7 +243,7 @@ static const Coord *get_shuffled_coords(int width, int height)
 /*
  * Genetically refine a block.
  */
-void refine_genetically(const Block *src, Block *gen, int passes)
+void refine_genetically(const Block *src, Block *gen, int passes, bool swap)
 {
 	int last_change = 0;
 
@@ -249,7 +251,7 @@ void refine_genetically(const Block *src, Block *gen, int passes)
 		const Coord *coords = get_shuffled_coords(src->getWidth(), src->getHeight());
 
 		for (int j = 0; j < src->getWidth()*src->getHeight(); ++j) {
-			if (refine_pixel(src, gen, coords[j].x, coords[j].y)) {
+			if (refine_pixel(src, gen, coords[j].x, coords[j].y, swap)) {
 				last_change = i;
 			}
 		}
@@ -336,8 +338,9 @@ static void generate_with_dither(const Block *src, const Color colors[2], Block 
  */
 void generate(const Block *src, Block *gen)
 {
-#if 0
+#if 1
 	*gen = *src;
+	refine_genetically(src, gen, 1, false);
 #elif 0
 	// Floyd-Steinberg dither
 	Block errors;
@@ -391,9 +394,10 @@ void generate(const Block *src, Block *gen)
 		for (int x = 0; x < src->getWidth(); ++x) {
 			double best_score = INFINITY;
 			for (int c = 0; c < src->getPaletteSize(); ++c) {
-				double score = evaluate_color(src->pixelAt(x, y), src->getPalette(c));
+				const Color& paletteColor = src->getPalette(c);
+				double score = evaluate_color(src->pixelAt(x, y), paletteColor);
 				if (score < best_score) {
-					gen->pixelAt(x, y) = src->getPalette(c);
+					gen->pixelAt(x, y) = paletteColor;
 					best_score = score;
 				}
 			}

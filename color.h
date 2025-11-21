@@ -8,7 +8,7 @@ struct Color {
 		b_{},
 		ix_{}
 	{
-		rgb_to_yuv();
+		//rgb_to_yuv();
 	}
 
 	Color(double r, double g, double b, int ix) :
@@ -17,7 +17,7 @@ struct Color {
 		b_{b},
 		ix_{ix}
 	{
-		rgb_to_yuv();
+		//rgb_to_yuv();
 	}
 
 	Color(const Color &other) :
@@ -79,12 +79,13 @@ struct Color {
 	double oklab_a()  const { return oklab.a;  }
 	double oklab_b()  const { return oklab.b;  }
 
-	double ydbdr_y()  const { return ydbdr.y;  }
-	double ydbdr_db() const { return ydbdr.db;  }
-	double ydbdr_dr() const { return ydbdr.dr;  }
+	double ydbdr_y()  const { if (!ydbdr.initialized) { rgb_to_yuv(); } return ydbdr.y;  }
+	double ydbdr_db() const { if (!ydbdr.initialized) { rgb_to_yuv(); } return ydbdr.db;  }
+	double ydbdr_dr() const { if (!ydbdr.initialized) { rgb_to_yuv(); } return ydbdr.dr;  }
 
 private:
-	void rgb_to_yuv() {
+	void rgb_to_yuv() const {
+#if 0
 		// YUV
 		if (false) {
 			// based on Y'UV and YDbDr
@@ -130,12 +131,14 @@ private:
 				};
 			}
 		}
+#endif
 
 		{
 			// YDbDr
 			ydbdr.y  = +0.299*r_ +0.587*g_ +0.114*b_;
 			ydbdr.db = -0.450*r_ -0.883*g_ +1.333*b_;
 			ydbdr.dr = -1.333*r_ +1.116*g_ +0.217*b_;
+			ydbdr.initialized = true;
 		}
 	}
 
@@ -151,8 +154,9 @@ private:
 	struct {
 		double l,a,b;
 	} oklab;
-	struct {
+	mutable struct {
 		double y, db, dr;
+		bool initialized = false;
 	} ydbdr;
 };
 
