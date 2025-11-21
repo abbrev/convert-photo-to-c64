@@ -4,11 +4,15 @@
 
 #include "evaluate.h"
 
+#define R_WEIGHT 0.2126
+#define G_WEIGHT 0.7152
+#define B_WEIGHT 0.0722
+
 double evaluate_color(const Color& src, const Color& gen)
 {
-	return ((src.r - gen.r) * (src.r - gen.r) +
-	        (src.g - gen.g) * (src.g - gen.g) +
-	        (src.b - gen.b) * (src.b - gen.b));
+	return ((src.r - gen.r) * (src.r - gen.r)*(R_WEIGHT) +
+	        (src.g - gen.g) * (src.g - gen.g)*(G_WEIGHT) +
+	        (src.b - gen.b) * (src.b - gen.b)*(B_WEIGHT));
 }
 
 #define DITHER_KERNEL_SIZE2 (DITHER_KERNEL_SIZE*DITHER_KERNEL_SIZE)
@@ -17,7 +21,7 @@ double evaluate_color(const Color& src, const Color& gen)
 #define DITHER_KERNEL_SIZE 3
 static const int dither_pattern[DITHER_KERNEL_SIZE2] = {
 	1, 8, 1,
-	8, 1, 8,
+	4, 1, 4,
 	1, 8, 1,
 };
 
