@@ -7,6 +7,14 @@
 double evaluate_color(const Color& src, const Color& gen)
 {
 #if 1
+#define Y_WEIGHT 4.0 // TODO adjust as needed
+	double  y_diff = (src.ydbdr_y()  - gen.ydbdr_y()) * Y_WEIGHT;
+	double db_diff = (src.ydbdr_db() - gen.ydbdr_db());
+	double dr_diff = (src.ydbdr_dr() - gen.ydbdr_dr());
+
+	return ( y_diff *  y_diff) +
+	       (db_diff * db_diff) + (dr_diff * dr_diff);
+#elif 1
 #define L_WEIGHT 1.0 // TODO adjust as needed
 	double l_diff = (src.oklab_l() - gen.oklab_l()) * L_WEIGHT;
 	double a_diff = (src.oklab_a() - gen.oklab_a());

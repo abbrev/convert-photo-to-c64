@@ -27,7 +27,8 @@ struct Color {
 		ix_{other.ix_},
 		yuv{other.yuv},
 		ipt{other.ipt},
-		oklab{other.oklab}
+		oklab{other.oklab},
+		ydbdr{other.ydbdr}
 	{}
 
 	bool operator ==(const Color &other) const {
@@ -38,10 +39,10 @@ struct Color {
 
 	bool operator !=(const Color &other) const { return !(*this == other); }
 
-	Color operator -(const Color &other) const { return { r_ - other.r_, g_ - other.g_, b_ - other.b_, 0 }; }
-	Color operator +(const Color &other) const { return { r_ + other.r_, g_ + other.g_, b_ + other.b_, 0 }; }
-	Color operator /(double d) const { return { r_ / d, g_ / d, b_ / d, 0 }; }
-	Color operator *(double d) const { return { r_ * d, g_ * d, b_ * d, 0 }; }
+	Color operator -(const Color &other) const { return Color(r_ - other.r_, g_ - other.g_, b_ - other.b_, 0); }
+	Color operator +(const Color &other) const { return Color(r_ + other.r_, g_ + other.g_, b_ + other.b_, 0); }
+	Color operator /(double d) const { return Color(r_ / d, g_ / d, b_ / d, 0); }
+	Color operator *(double d) const { return Color(r_ * d, g_ * d, b_ * d, 0); }
 
 	Color& operator +=(const Color &other) { *this = *this + other; return *this; }
 	Color& operator /=(double d) { *this = *this / d; return *this; }
@@ -54,10 +55,11 @@ struct Color {
 		yuv = other.yuv;
 		ipt = other.ipt;
 		oklab = other.oklab;
+		ydbdr = other.ydbdr;
 		return *this;
 	}
 
-	bool operator<(const Color &other) const { return yuv.y < other.yuv.y; }
+	bool operator<(const Color &other) const { return ydbdr.y < other.ydbdr.y; }
 
 	double r()  const { return r_;  }
 	double g()  const { return g_;  }
@@ -77,16 +79,21 @@ struct Color {
 	double oklab_a()  const { return oklab.a;  }
 	double oklab_b()  const { return oklab.b;  }
 
+	double ydbdr_y()  const { return ydbdr.y;  }
+	double ydbdr_db() const { return ydbdr.db;  }
+	double ydbdr_dr() const { return ydbdr.dr;  }
+
 private:
 	void rgb_to_yuv() {
 		// YUV
 		if (false) {
+			// based on Y'UV and YDbDr
 			yuv.y = + 0.29900*r_ + 0.58700*g_ + 0.11400*b_;
 			yuv.u = - 0.14713*r_ - 0.28886*g_ + 0.43600*b_;
 			yuv.v = + 0.61500*r_ - 0.51499*g_ - 0.10001*b_;
 		}
 
-		{
+		if (false) {
 			double x = +0.49000*r_ +0.31000*g_ +0.20000*b_;
 			double y = +0.17697*r_ +0.81240*g_ +0.01063*b_;
 			double z = +0.00000*r_ +0.01000*g_ +0.99000*b_;
@@ -123,6 +130,13 @@ private:
 				};
 			}
 		}
+
+		{
+			// YDbDr
+			ydbdr.y  = +0.299*r_ +0.587*g_ +0.114*b_;
+			ydbdr.db = -0.450*r_ -0.883*g_ +1.333*b_;
+			ydbdr.dr = -1.333*r_ +1.116*g_ +0.217*b_;
+		}
 	}
 
 	double r_,g_,b_;
@@ -137,6 +151,9 @@ private:
 	struct {
 		double l,a,b;
 	} oklab;
+	struct {
+		double y, db, dr;
+	} ydbdr;
 };
 
 #endif
