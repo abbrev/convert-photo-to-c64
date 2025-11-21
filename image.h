@@ -37,8 +37,8 @@ public:
 	      Block& blockAt(int x, int y)       { return blocks[y*width + x]; }
 	const Block& blockAt(int x, int y) const { return blocks[y*width + x]; }
 
-	      Color& pixelAt(int x, int y)       { assert(blockWidth!=0); return blockAt(x/blockWidth, y/BLOCK_HEIGHT).pixels[y%BLOCK_HEIGHT][x%blockWidth]; }
-	const Color& pixelAt(int x, int y) const { assert(blockWidth!=0); return blockAt(x/blockWidth, y/BLOCK_HEIGHT).pixels[y%BLOCK_HEIGHT][x%blockWidth]; }
+	      Color& pixelAt(int x, int y)       { assert(blockWidth!=0); return blockAt(x/blockWidth, y/BLOCK_HEIGHT).pixelAt(x%blockWidth, y%BLOCK_HEIGHT); }
+	const Color& pixelAt(int x, int y) const { assert(blockWidth!=0); return blockAt(x/blockWidth, y/BLOCK_HEIGHT).pixelAt(x%blockWidth, y%BLOCK_HEIGHT); }
 
 	int getWidth(void) const { return width; }
 	int getHeight(void) const { return height; }

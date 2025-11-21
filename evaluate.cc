@@ -103,7 +103,7 @@ double evaluate_single_pixel(const Block *src, const Block *gen, int x, int y)
 	if (x < 0 || src->getWidth() <= x ||
 	    y < 0 || 8 <= y) return 0;
 
-	const Color& srcColor = src->pixels[y][x];
+	const Color& srcColor = src->pixelAt(x, y);
 
 	// compute weighted average color using neighboring pixels
 	// XXX coords can be removed by refactoring the loop and weights below
@@ -136,9 +136,10 @@ double evaluate_single_pixel(const Block *src, const Block *gen, int x, int y)
 		if (yy < 0) yy = -yy;
 		else if (yy >= 8) yy = 2*(8-1) - yy;
 
-		rsum += gen->pixels[yy][xx].r() * eval_weights[i];
-		gsum += gen->pixels[yy][xx].g() * eval_weights[i];
-		bsum += gen->pixels[yy][xx].b() * eval_weights[i];
+		const Color& gen_pixel = gen->pixelAt(xx, yy);
+		rsum += gen_pixel.r() * eval_weights[i];
+		gsum += gen_pixel.g() * eval_weights[i];
+		bsum += gen_pixel.b() * eval_weights[i];
 	}
 
 	rsum /= eval_weightsum;
@@ -201,9 +202,10 @@ double evaluate_single_pixel(const Image *src, const Image *gen, int x, int y)
 		if (yy < 0) yy = -yy;
 		else if (yy >= 8*gen->getHeight()) yy = 2*(8*gen->getHeight() - 1) - yy;
 
-		rsum += gen->pixelAt(xx, yy).r() * eval_weights[i];
-		gsum += gen->pixelAt(xx, yy).g() * eval_weights[i];
-		bsum += gen->pixelAt(xx, yy).b() * eval_weights[i];
+		const Color& gen_pixel = gen->pixelAt(xx, yy);
+		rsum += gen_pixel.r() * eval_weights[i];
+		gsum += gen_pixel.g() * eval_weights[i];
+		bsum += gen_pixel.b() * eval_weights[i];
 	}
 
 	rsum /= eval_weightsum;

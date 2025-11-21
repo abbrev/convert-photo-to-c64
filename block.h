@@ -7,8 +7,6 @@
 
 // we may support 4x8 blocks in the future
 typedef struct {
-	Color pixels[8][8];
-
 	const Color& pixelAt(int x, int y) const { return pixels[y][x]; }
 	      Color& pixelAt(int x, int y)       { return pixels[y][x]; }
 
@@ -22,6 +20,8 @@ typedef struct {
 	void setWidth(int w) { width = w; }
 
 private:
+	Color pixels[8][8];
+
 	int width = 8;
 	int paletteSize;
 	Color palette[4];
