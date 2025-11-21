@@ -190,15 +190,51 @@ static void generate_with_dither(const Block *src, const Color colors[2], Block 
  */
 void generate(const Block *src, Block *gen)
 {
-#if 1
+#if 0
 	*gen = *src;
+#elif 1
+	// dither
+	Color avg;
+	for (int c = 0; c < src->getPaletteSize(); ++c) {
+		avg += src->getPalette(c);
+	}
+	avg /= src->getPaletteSize();
+
+	Color bayer[2][2];
+
+	if (src->getPaletteSize() == 2) {
+		const double weight = 0.75;
+		bayer[0][0] = (src->getPalette(1) - avg) * +1.000 * weight;
+		bayer[0][1] = (src->getPalette(0) - avg) * +0.333 * weight;
+		bayer[1][1] = (src->getPalette(1) - avg) * +0.333 * weight;
+		bayer[1][0] = (src->getPalette(0) - avg) * +1.000 * weight;
+	} else {
+		const double weight = 0.75;
+		bayer[0][0] = (src->getPalette(0) - avg) * +0.500 * weight;
+		bayer[0][1] = (src->getPalette(1) - avg) * +0.500 * weight;
+		bayer[1][1] = (src->getPalette(2) - avg) * +0.500 * weight;
+		bayer[1][0] = (src->getPalette(3) - avg) * +0.500 * weight;
+	}
+
+	for (int y = 0; y < 8; ++y) {
+		for (int x = 0; x < src->getWidth(); ++x) {
+			double best_score = INFINITY;
+			for (int c = 0; c < src->getPaletteSize(); ++c) {
+				double score = evaluate_color(src->pixelAt(x, y) + bayer[y%2][x%2], src->getPalette(c));
+				if (score < best_score) {
+					gen->pixelAt(x, y) = src->getPalette(c);
+					best_score = score;
+				}
+			}
+		}
+	}
 #elif 1
 	// fill with nearest colors (no dithering)
 	for (int y = 0; y < 8; ++y) {
 		for (int x = 0; x < src->getWidth(); ++x) {
 			double best_score = INFINITY;
 			for (int c = 0; c < src->getPaletteSize(); ++c) {
-				double score = evaluate_color(&src->pixelAt(x, y), &src->getPalette(c));
+				double score = evaluate_color(src->pixelAt(x, y), src->getPalette(c));
 				if (score < best_score) {
 					gen->pixelAt(x, y) = src->getPalette(c);
 					best_score = score;

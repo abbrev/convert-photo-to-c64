@@ -18,12 +18,12 @@ extern "C" {
 
 static double from_gamma(double d)
 {
-	return d <= 0.04045 ? d / 12.92 : pow((d+0.055)/1.055, 2.4);
+	return pow(d, 2.2);
 }
 
 static double to_gamma(double d)
 {
-	return d <= 0.0031308 ? 12.92*d : pow(1.055*d, 1/2.4) - 0.055;
+	return pow(d, 1/2.2);
 }
 
 

@@ -4,11 +4,11 @@
 
 #include "evaluate.h"
 
-double evaluate_color(const Color *src, const Color *gen)
+double evaluate_color(const Color& src, const Color& gen)
 {
-	return ((src->r - gen->r) * (src->r - gen->r) +
-	        (src->g - gen->g) * (src->g - gen->g) +
-	        (src->b - gen->b) * (src->b - gen->b));
+	return ((src.r - gen.r) * (src.r - gen.r) +
+	        (src.g - gen.g) * (src.g - gen.g) +
+	        (src.b - gen.b) * (src.b - gen.b));
 }
 
 #define DITHER_KERNEL_SIZE2 (DITHER_KERNEL_SIZE*DITHER_KERNEL_SIZE)
@@ -67,7 +67,7 @@ double evaluate_single_pixel(const Block *src, const Block *gen, int x, int y)
 	if (x < 0 || src->getWidth() <= x ||
 	    y < 0 || 8 <= y) return 0;
 
-	const Color *srcColor = &src->pixels[y][x];
+	const Color& srcColor = src->pixels[y][x];
 
 	// compute weighted average color using neighboring pixels
 	// XXX coords can be removed by refactoring the loop and weights below
@@ -123,7 +123,7 @@ double evaluate_single_pixel(const Block *src, const Block *gen, int x, int y)
 		0,
 	};
 
-	return evaluate_color(srcColor, &avgColor);
+	return evaluate_color(srcColor, avgColor);
 }
 
 // evaluate a single pixel
@@ -132,7 +132,7 @@ double evaluate_single_pixel(const Image *src, const Image *gen, int x, int y)
 	if (x < 0 || gen->getBlockWidth()*gen->getWidth()  <= x ||
 	    y < 0 || 8*gen->getHeight() <= y) return 0;
 
-	const Color *srcColor = &src->pixelAt(x, y);
+	const Color& srcColor = src->pixelAt(x, y);
 
 	// compute weighted average color using neighboring pixels
 	// XXX coords can be removed by refactoring the loop and weights below
@@ -188,7 +188,7 @@ double evaluate_single_pixel(const Image *src, const Image *gen, int x, int y)
 		0,
 	};
 
-	return evaluate_color(srcColor, &avgColor);
+	return evaluate_color(srcColor, avgColor);
 }
 
 // evaluate a pixel and its neighbors that are affected by it
