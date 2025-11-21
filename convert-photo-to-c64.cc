@@ -7,6 +7,8 @@
 #include <math.h>
 #include <unistd.h>
 
+#include <algorithm>
+
 #define HAVE_BOOL 1 // don't let pam.h define bool
 
 extern "C" {
@@ -59,7 +61,7 @@ static bool load_palette(const char *filename)
 
 	int c = 0;
 	for (int lineno = 1; fgets(line, sizeof line, f); ++lineno) {
-		int r, g, b;
+		unsigned r, g, b;
 		if (line[0] == '#' || line[0] == '\n') {
 			continue;
 		}
@@ -140,12 +142,12 @@ static Image *load_image(FILE *pamfile, int block_width)
 	for (int y = 0; y < inpam.height; ++y) {
 		pnm_readpamrow(&inpam, tuplerow);
 		for (int x = 0; x < inpam.width; ++x) {
-			image->pixelAt(x, y) = {
+			image->pixelAt(x, y) = Color(
 				from_gamma((double)tuplerow[x][rindex] / inpam.maxval),
 				from_gamma((double)tuplerow[x][gindex] / inpam.maxval),
 				from_gamma((double)tuplerow[x][bindex] / inpam.maxval),
-				0,
-			};
+				0
+			);
 		}
 	}
 
@@ -164,9 +166,9 @@ static void save_image(FILE *pamfile, const Image *image)
 			for (int yy = 0; yy < 8; ++yy) {
 				for (int xx = 0; xx < 8; ++xx) {
 					fprintf(stderr, " #%02x%02x%02x",
-					image->blockAt(x, y).pixels[yy][xx].r,
-					image->blockAt(x, y).pixels[yy][xx].g,
-					image->blockAt(x, y).pixels[yy][xx].b);
+					image->blockAt(x, y).pixels[yy][xx].r(),
+					image->blockAt(x, y).pixels[yy][xx].g(),
+					image->blockAt(x, y).pixels[yy][xx].b());
 				}
 				fprintf(stderr, "\n");
 			}
@@ -198,9 +200,9 @@ static void save_image(FILE *pamfile, const Image *image)
 	for (int y = 0; y < image->getHeight() * 8; ++y) {
 		for (int x = 0; x < image->getWidth() * image->getBlockWidth(); ++x) {
 			const Color& p = image->pixelAt(x, y);
-			tuplerow[x][rindex] = round(outpam.maxval * p.r);
-			tuplerow[x][gindex] = round(outpam.maxval * p.g);
-			tuplerow[x][bindex] = round(outpam.maxval * p.b);
+			tuplerow[x][rindex] = round(outpam.maxval * to_gamma(p.r()));
+			tuplerow[x][gindex] = round(outpam.maxval * to_gamma(p.g()));
+			tuplerow[x][bindex] = round(outpam.maxval * to_gamma(p.b()));
 		}
 		pnm_writepamrow(&outpam, tuplerow);
 	}
@@ -348,13 +350,13 @@ int main(int argc, char *argv[])
 	int num_colors_per_block;
 
 	if (gfx_mode == HIRES) {
-		color0max = num_palette_colors - 1;
+		color0max = num_palette_colors - 0;
 		color1max = num_palette_colors - 0;
 		num_colors_per_block = 2;
 		block_width = 8;
 	} else if (gfx_mode == MULTICOLOR) {
-		color0max = num_palette_colors - 2;
-		color1max = num_palette_colors - 1;
+		color0max = num_palette_colors - 0;
+		color1max = num_palette_colors - 0;
 		num_colors_per_block = 4;
 		block_width = 4;
 	} else {
@@ -373,13 +375,11 @@ int main(int argc, char *argv[])
 	for (int y = 0; y < 8*image->getHeight(); ++y) {
 		for (int x = 0; x < image->getBlockWidth()*image->getWidth(); ++x) {
 			Color& c = image->pixelAt(x, y);
-			double y = 0.2126*c.r + 0.7152*c.g + 0.0722*c.b;
-			double dr = c.r - y;
-			double dg = c.g - y;
-			double db = c.b - y;
-			c.r = y + saturation * dr;
-			c.g = y + saturation * dg;
-			c.b = y + saturation * db;
+			double y = 0.2126*c.r() + 0.7152*c.g() + 0.0722*c.b();
+			double dr = c.r() - y;
+			double dg = c.g() - y;
+			double db = c.b() - y;
+			c = Color(y + saturation * dr, y + saturation * dg, y + saturation * db, -1);
 		}
 	}
 
@@ -391,14 +391,16 @@ int main(int argc, char *argv[])
 
 	// Palette colors are gamma corrected. Make them linear.
 	for (int i = 0; i < NUM_COLORS; ++i) {
-		palette->colors[i].r = from_gamma(palette->colors[i].r / 255.0);
-		palette->colors[i].g = from_gamma(palette->colors[i].g / 255.0);
-		palette->colors[i].b = from_gamma(palette->colors[i].b / 255.0);
+		Color& c = palette->colors[i];
+		c = Color(from_gamma(c.r() / 255.0), from_gamma(c.g() / 255.0), from_gamma(c.b() / 255.0), c.ix());
 	}
 
 	set_dither_weight(dither_weight);
 
 	Color bgcolor = palette->colors[bgcolorix];
+
+	// sort the palette by luminance
+	//std::sort(palette->colors, palette->colors + num_palette_colors);
 
 	image->setBlockWidth(block_width);
 	output.setBlockWidth(block_width);
@@ -425,11 +427,11 @@ int main(int argc, char *argv[])
 				input_block.setPalette(0, palette->colors[color0ix]);
 				output_block.setPalette(0, palette->colors[color0ix]);
 
-				for (int color1ix = color0ix + 1; color1ix < color1max; ++color1ix) {
+				for (int color1ix = color0ix; color1ix < color1max; ++color1ix) {
 					input_block.setPalette(1, palette->colors[color1ix]);
 					output_block.setPalette(1, palette->colors[color1ix]);
 
-					int color2ix = color1ix + 1;
+					int color2ix = color1ix;
 					if (gfx_mode == HIRES) {
 						color2ix = num_palette_colors - 1;
 					}
@@ -474,15 +476,6 @@ perfect:
 	fprintf(stderr, "\n");
 
 	//fprintf(stderr, "%s (%d)\n", __FILE__, __LINE__);
-
-	// gamma the output image
-	for (int y = 0; y < output.getHeight()*8; ++y) {
-		for (int x = 0; x < output.getWidth()*output.getBlockWidth(); ++x) {
-			output.pixelAt(x, y).r = to_gamma(output.pixelAt(x, y).r);
-			output.pixelAt(x, y).g = to_gamma(output.pixelAt(x, y).g);
-			output.pixelAt(x, y).b = to_gamma(output.pixelAt(x, y).b);
-		}
-	}
 
 	save_image(stdout, &output);
 	//fprintf(stderr, "%s (%d)\n", __FILE__, __LINE__);

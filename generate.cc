@@ -31,6 +31,70 @@ static bool refine_pixel(const Block *src, Block *gen, int x, int y)
 	return best_color != original_color;
 }
 
+static bool refine_pixel_by_swapping(const Image *src, Image *gen, int x, int y)
+{
+	int bx = x / gen->getBlockWidth();
+	int by = y / 8;
+
+	const Block& gen_block = gen->blockAt(bx, by);
+
+	bool change = false;
+
+	// try swapping current pixel with neighbors
+	for (int yoff = -1; yoff <= 1; ++yoff) {
+		for (int xoff = -1; xoff <= 2; ++xoff) {
+			if (xoff == 0 && yoff == 0) {
+				continue;
+			}
+
+			int ox = x + xoff;
+			int oy = y + yoff;
+			if (ox < 0 || src->getWidth() <= ox ||
+			    oy < 0 || src->getHeight() <= oy) {
+				continue;
+			}
+
+			Color& pixel = gen->pixelAt(x, y);
+
+			int obx = ox / gen->getBlockWidth();
+			int oby = oy / 8;
+			const Block& other_block = src->blockAt(obx, oby);
+			Color& other_pixel = gen->pixelAt(ox, oy);
+
+			if (pixel == other_pixel) {
+				// they're the same color; no need to swap
+				continue;
+			}
+			if (&other_block != &gen_block) {
+				// TODO check palettes of gen_block and other_block to see if pixel and other_pixel are in both blocks' palettes
+				continue;
+			}
+
+			double before = evaluate_pixel(src, gen, x, y);
+
+			// swap them
+			{
+				Color t = other_pixel;
+				other_pixel = pixel;
+				pixel = t;
+			}
+
+			double after = evaluate_pixel(src, gen, x, y);
+
+			if (after > before) {
+				// swap them back
+				Color t = other_pixel;
+				other_pixel = pixel;
+				pixel = t;
+			} else {
+				change = true;
+			}
+		}
+	}
+
+	return change;
+}
+
 /*
  * Refine one pixel to maximize the score for the whole block.
  */
@@ -46,7 +110,11 @@ static bool refine_pixel(const Image *src, Image *gen, int x, int y)
 	Color original_color = pixel;
 	Color best_color = pixel;
 	double best_score = INFINITY;
+	bool change = false;
 
+	change = refine_pixel_by_swapping(src, gen, x, y);
+
+	// try changing the color of just this pixel
 	for (int i = 0; i < src_block.getPaletteSize(); ++i) {
 		pixel = src_block.getPalette(i);
 		double score = evaluate_pixel(src, gen, x, y);
@@ -55,9 +123,13 @@ static bool refine_pixel(const Image *src, Image *gen, int x, int y)
 			best_color = src_block.getPalette(i);
 		}
 	}
-
 	pixel = best_color;
-	return best_color != original_color;
+
+	if (pixel != original_color) {
+		change = true;
+	}
+
+	return change;
 }
 
 typedef struct {
@@ -74,7 +146,7 @@ static const Coord *get_shuffled_coords(int width, int height)
 
 		for (int y = 0; y < height; ++y) {
 			for (int x = 0; x < width; ++x) {
-				*coord++ = (Coord){(uint8_t)x,(uint8_t)y};
+				*coord++ = {(uint8_t)x,(uint8_t)y};
 			}
 		}
 	}

@@ -4,15 +4,24 @@
 
 #include "evaluate.h"
 
-#define R_WEIGHT 0.2126
-#define G_WEIGHT 0.7152
-#define B_WEIGHT 0.0722
 
 double evaluate_color(const Color& src, const Color& gen)
 {
-	return ((src.r - gen.r) * (src.r - gen.r)*(R_WEIGHT) +
-	        (src.g - gen.g) * (src.g - gen.g)*(G_WEIGHT) +
-	        (src.b - gen.b) * (src.b - gen.b)*(B_WEIGHT));
+#if 1
+	// calculate Euclidean distance in YUV color space (better than in RGB color space)
+
+#define Y_WEIGHT 1.5 // TODO adjust as needed
+	double y_diff = (src.y() - gen.y()) * Y_WEIGHT;
+	double u_diff = (src.u() - gen.u());
+	double v_diff = (src.v() - gen.v());
+
+	return (y_diff * y_diff) +
+	       (u_diff * u_diff) + (v_diff * v_diff);
+#else
+		return ((src.r() - gen.r()) * (src.r() - gen.r())*(R_WEIGHT) +
+		        (src.g() - gen.g()) * (src.g() - gen.g())*(G_WEIGHT) +
+		        (src.b() - gen.b()) * (src.b() - gen.b())*(B_WEIGHT));
+#endif
 }
 
 #define DITHER_KERNEL_SIZE2 (DITHER_KERNEL_SIZE*DITHER_KERNEL_SIZE)
@@ -104,9 +113,9 @@ double evaluate_single_pixel(const Block *src, const Block *gen, int x, int y)
 		if (yy < 0) yy = -yy;
 		else if (yy >= 8) yy = 2*(8-1) - yy;
 
-		rsum += gen->pixels[yy][xx].r * eval_weights[i];
-		gsum += gen->pixels[yy][xx].g * eval_weights[i];
-		bsum += gen->pixels[yy][xx].b * eval_weights[i];
+		rsum += gen->pixels[yy][xx].r() * eval_weights[i];
+		gsum += gen->pixels[yy][xx].g() * eval_weights[i];
+		bsum += gen->pixels[yy][xx].b() * eval_weights[i];
 	}
 
 	rsum /= eval_weightsum;
@@ -169,9 +178,9 @@ double evaluate_single_pixel(const Image *src, const Image *gen, int x, int y)
 		if (yy < 0) yy = -yy;
 		else if (yy >= 8*gen->getHeight()) yy = 2*(8*gen->getHeight() - 1) - yy;
 
-		rsum += gen->pixelAt(xx, yy).r * eval_weights[i];
-		gsum += gen->pixelAt(xx, yy).g * eval_weights[i];
-		bsum += gen->pixelAt(xx, yy).b * eval_weights[i];
+		rsum += gen->pixelAt(xx, yy).r() * eval_weights[i];
+		gsum += gen->pixelAt(xx, yy).g() * eval_weights[i];
+		bsum += gen->pixelAt(xx, yy).b() * eval_weights[i];
 	}
 
 	rsum /= eval_weightsum;
