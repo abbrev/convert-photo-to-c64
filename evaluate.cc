@@ -97,6 +97,22 @@ void set_dither_weight(double w)
 	}
 }
 
+#if DITHER_KERNEL_SIZE == 3
+static const struct { int x, y; } coords[DITHER_KERNEL_SIZE2] = {
+	{-1,-1},{ 0,-1},{ 1,-1},
+	{-1, 0},{ 0, 0},{ 1, 0},
+	{-1, 1},{ 0, 1},{ 1, 1},
+};
+#else
+static const struct { int x, y; } coords[DITHER_KERNEL_SIZE2] = {
+	{-2,-2},{-1,-2},{ 0,-2},{ 1,-2},{ 2,-2},
+	{-2,-1},{-1,-1},{ 0,-1},{ 1,-1},{ 2,-1},
+	{-2, 0},{-1, 0},{ 0, 0},{ 1, 0},{ 2, 0},
+	{-2, 1},{-1, 1},{ 0, 1},{ 1, 1},{ 2, 1},
+	{-2, 2},{-1, 2},{ 0, 2},{ 1, 2},{ 2, 2},
+};
+#endif
+
 // evaluate a single pixel
 double evaluate_single_pixel(const Block *src, const Block *gen, int x, int y)
 {
@@ -106,22 +122,6 @@ double evaluate_single_pixel(const Block *src, const Block *gen, int x, int y)
 	const Color& srcColor = src->pixelAt(x, y);
 
 	// compute weighted average color using neighboring pixels
-	// XXX coords can be removed by refactoring the loop and weights below
-#if DITHER_KERNEL_SIZE == 3
-	static const struct { int x, y; } coords[DITHER_KERNEL_SIZE2] = {
-		{-1,-1},{ 0,-1},{ 1,-1},
-		{-1, 0},{ 0, 0},{ 1, 0},
-		{-1, 1},{ 0, 1},{ 1, 1},
-	};
-#else
-	static const struct { int x, y; } coords[DITHER_KERNEL_SIZE2] = {
-		{-2,-2},{-1,-2},{ 0,-2},{ 1,-2},{ 2,-2},
-		{-2,-1},{-1,-1},{ 0,-1},{ 1,-1},{ 2,-1},
-		{-2, 0},{-1, 0},{ 0, 0},{ 1, 0},{ 2, 0},
-		{-2, 1},{-1, 1},{ 0, 1},{ 1, 1},{ 2, 1},
-		{-2, 2},{-1, 2},{ 0, 2},{ 1, 2},{ 2, 2},
-	};
-#endif
 
 	double rsum = 0;
 	double gsum = 0;
@@ -172,22 +172,6 @@ double evaluate_single_pixel(const Image *src, const Image *gen, int x, int y)
 	const Color& srcColor = src->pixelAt(x, y);
 
 	// compute weighted average color using neighboring pixels
-	// XXX coords can be removed by refactoring the loop and weights below
-#if DITHER_KERNEL_SIZE == 3
-	static const struct { int x, y; } coords[DITHER_KERNEL_SIZE2] = {
-		{-1,-1},{ 0,-1},{ 1,-1},
-		{-1, 0},{ 0, 0},{ 1, 0},
-		{-1, 1},{ 0, 1},{ 1, 1},
-	};
-#else
-	static const struct { int x, y; } coords[DITHER_KERNEL_SIZE2] = {
-		{-2,-2},{-1,-2},{ 0,-2},{ 1,-2},{ 2,-2},
-		{-2,-1},{-1,-1},{ 0,-1},{ 1,-1},{ 2,-1},
-		{-2, 0},{-1, 0},{ 0, 0},{ 1, 0},{ 2, 0},
-		{-2, 1},{-1, 1},{ 0, 1},{ 1, 1},{ 2, 1},
-		{-2, 2},{-1, 2},{ 0, 2},{ 1, 2},{ 2, 2},
-	};
-#endif
 
 	double rsum = 0;
 	double gsum = 0;

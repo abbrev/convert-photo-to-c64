@@ -11,6 +11,8 @@ static bool refine_pixel_by_swapping(const Block *src, Block *gen, int x, int y)
 {
 	bool change = false;
 
+	Color& pixel = gen->pixelAt(x, y);
+
 	// try swapping current pixel with neighbors
 	for (int yoff = -1; yoff <= 1; ++yoff) {
 		for (int xoff = -1; xoff <= 1; ++xoff) {
@@ -25,7 +27,6 @@ static bool refine_pixel_by_swapping(const Block *src, Block *gen, int x, int y)
 				continue;
 			}
 
-			Color& pixel = gen->pixelAt(x, y);
 			Color& other_pixel = gen->pixelAt(ox, oy);
 
 			if (pixel == other_pixel) {
@@ -110,6 +111,8 @@ static bool refine_pixel_by_swapping(const Image *src, Image *gen, int x, int y)
 
 	bool change = false;
 
+	Color& pixel = gen->pixelAt(x, y);
+
 	// try swapping current pixel with neighbors
 	for (int yoff = -1; yoff <= 1; ++yoff) {
 		for (int xoff = -1; xoff <= 1; ++xoff) {
@@ -123,8 +126,6 @@ static bool refine_pixel_by_swapping(const Image *src, Image *gen, int x, int y)
 			    oy < 0 || src->getHeight() <= oy) {
 				continue;
 			}
-
-			Color& pixel = gen->pixelAt(x, y);
 
 			int obx = ox / gen->getBlockWidth();
 			int oby = oy / 8;
