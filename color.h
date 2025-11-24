@@ -67,93 +67,91 @@ struct Color {
 
 	int ix() const { return ix_; }
 
-	double yuv_y()  const { return yuv.y;  }
-	double yuv_u()  const { return yuv.u;  }
-	double yuv_v()  const { return yuv.v;  }
+	double yuv_y()  const { if (!yuv.initialized) { rgb_to_yuv(); } return yuv.y;  }
+	double yuv_u()  const { if (!yuv.initialized) { rgb_to_yuv(); } return yuv.u;  }
+	double yuv_v()  const { if (!yuv.initialized) { rgb_to_yuv(); } return yuv.v;  }
 
 	double ipt_i()  const { return ipt.i;  }
 	double ipt_p()  const { return ipt.p;  }
 	double ipt_t()  const { return ipt.t;  }
 
-	double oklab_l()  const { return oklab.l;  }
-	double oklab_a()  const { return oklab.a;  }
-	double oklab_b()  const { return oklab.b;  }
+	double oklab_l()  const { if (!oklab.initialized) { rgb_to_oklab(); } return oklab.l;  }
+	double oklab_a()  const { if (!oklab.initialized) { rgb_to_oklab(); } return oklab.a;  }
+	double oklab_b()  const { if (!oklab.initialized) { rgb_to_oklab(); } return oklab.b;  }
 
-	double ydbdr_y()  const { if (!ydbdr.initialized) { rgb_to_yuv(); } return ydbdr.y;  }
-	double ydbdr_db() const { if (!ydbdr.initialized) { rgb_to_yuv(); } return ydbdr.db;  }
-	double ydbdr_dr() const { if (!ydbdr.initialized) { rgb_to_yuv(); } return ydbdr.dr;  }
+	double ycbcr_y()  const { if (!ycbcr.initialized) { rgb_to_ycbcr(); } return ycbcr.y;  }
+	double ycbcr_cb() const { if (!ycbcr.initialized) { rgb_to_ycbcr(); } return ycbcr.cb;  }
+	double ycbcr_cr() const { if (!ycbcr.initialized) { rgb_to_ycbcr(); } return ycbcr.cr;  }
+
+	double ydbdr_y()  const { if (!ydbdr.initialized) { rgb_to_ydbdr(); } return ydbdr.y;  }
+	double ydbdr_db() const { if (!ydbdr.initialized) { rgb_to_ydbdr(); } return ydbdr.db;  }
+	double ydbdr_dr() const { if (!ydbdr.initialized) { rgb_to_ydbdr(); } return ydbdr.dr;  }
 
 private:
+	void rgb_to_oklab() const {
+		double l = +0.4122214708*r_ +0.5363325363*g_ +0.0514459929*b_;
+		double m = +0.2119034982*r_ +0.6806995451*g_ +0.1073969566*b_;
+		double s = +0.0883024619*r_ +0.2817188376*g_ +0.6299787005*b_;
+
+		double lp = cbrt(l);
+		double mp = cbrt(m);
+		double sp = cbrt(s);
+
+		oklab.l = +0.2104542553*lp +0.7936177850*mp -0.0040720468*sp;
+		oklab.a = +1.9779984951*lp -2.4285922050*mp +0.4505937099*sp;
+		oklab.b = +0.0259040371*lp +0.7827717662*mp -0.8086757660*sp;
+		oklab.initialized = true;
+	}
+
+	void rgb_to_ycbcr() const {
+		static const double gamma = 1/2.2;
+		double r = pow(r_, gamma);
+		double g = pow(g_, gamma);
+		double b = pow(b_, gamma);
+		ycbcr.y  = +0.2126*r +0.7152*g +0.0722*b;
+		ycbcr.cb = -0.1146*r -0.3854*g +0.5000*b;
+		ycbcr.cr = +0.5000*r -0.4542*g -0.0458*b;
+		ycbcr.initialized = true;
+	}
+
 	void rgb_to_yuv() const {
-#if 0
-		// YUV
-		if (false) {
-			// based on Y'UV and YDbDr
-			yuv.y = + 0.29900*r_ + 0.58700*g_ + 0.11400*b_;
-			yuv.u = - 0.14713*r_ - 0.28886*g_ + 0.43600*b_;
-			yuv.v = + 0.61500*r_ - 0.51499*g_ - 0.10001*b_;
-		}
+		// Y'UV
+		static const double gamma = 1/2.2;
+		double r = pow(r_, gamma);
+		double g = pow(g_, gamma);
+		double b = pow(b_, gamma);
+		yuv.y = +0.29900*r +0.58700*g +0.11400*b;
+		yuv.u = -0.14713*r -0.28886*g +0.43600*b;
+		yuv.v = +0.61500*r -0.51499*g -0.10001*b;
+		yuv.initialized = true;
+	}
 
-		if (false) {
-			double x = +0.49000*r_ +0.31000*g_ +0.20000*b_;
-			double y = +0.17697*r_ +0.81240*g_ +0.01063*b_;
-			double z = +0.00000*r_ +0.01000*g_ +0.99000*b_;
-
-			// IPT
-			if (false) {
-				double l = +0.4002*x +0.7075*y -0.0807*z;
-				double m = -0.2280*x +1.1500*y +0.0612*z;
-				double s = +0.0000*x +0.0000*y +0.9184*z;
-
-				double lp = l >= 0 ? pow(l, 0.43) : -pow(-l, 0.43);
-				double mp = m >= 0 ? pow(m, 0.43) : -pow(-m, 0.43);
-				double sp = s >= 0 ? pow(s, 0.43) : -pow(-s, 0.43);
-
-				ipt.i = +0.4000*lp +0.4000*mp +0.2000*sp;
-				ipt.p = +4.4550*lp -4.8510*mp +0.3960*sp;
-				ipt.t = +0.8056*lp +0.3572*mp -1.1628*sp;
-			}
-
-			// OKLab
-			{
-				double l = +0.4122214708*r_ +0.5363325363*g_ +0.0514459929*b_;
-				double m = +0.2119034982*r_ +0.6806995451*g_ +0.1073969566*b_;
-				double s = +0.0883024619*r_ +0.2817188376*g_ +0.6299787005*b_;
-
-				double lp = cbrt(l);
-				double mp = cbrt(m);
-				double sp = cbrt(s);
-
-				oklab = {
-					+0.2104542553*lp + 0.7936177850*mp - 0.0040720468*sp,
-					+1.9779984951*lp - 2.4285922050*mp + 0.4505937099*sp,
-					+0.0259040371*lp + 0.7827717662*mp - 0.8086757660*sp,
-				};
-			}
-		}
-#endif
-
-		{
-			// YDbDr
-			ydbdr.y  = +0.299*r_ +0.587*g_ +0.114*b_;
-			ydbdr.db = -0.450*r_ -0.883*g_ +1.333*b_;
-			ydbdr.dr = -1.333*r_ +1.116*g_ +0.217*b_;
-			ydbdr.initialized = true;
-		}
+	void rgb_to_ydbdr() const {
+		// YDbDr
+		ydbdr.y  = +0.299*r_ +0.587*g_ +0.114*b_;
+		ydbdr.db = -0.450*r_ -0.883*g_ +1.333*b_;
+		ydbdr.dr = -1.333*r_ +1.116*g_ +0.217*b_;
+		ydbdr.initialized = true;
 	}
 
 	double r_,g_,b_;
 	int ix_;
 
-	struct {
+	mutable struct {
 		double y,u,v;
+		bool initialized = false;
 	} yuv;
 	struct {
 		double i,p,t;
 	} ipt;
-	struct {
+	mutable struct {
 		double l,a,b;
+		bool initialized = false;
 	} oklab;
+	mutable struct {
+		double y, cb, cr;
+		bool initialized = false;
+	} ycbcr;
 	mutable struct {
 		double y, db, dr;
 		bool initialized = false;

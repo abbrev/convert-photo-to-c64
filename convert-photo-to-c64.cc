@@ -285,7 +285,7 @@ static bool *get_colors_from_list(const char *s)
 static bool process_opts(int argc, char *argv[])
 {
 	int opt;
-	while ((opt = getopt(argc, argv, "b:d:i:x:m:p:s:P:")) != -1) {
+	while ((opt = getopt(argc, argv, "b:d:i:x:m:p:s:P:y:")) != -1) {
 		switch (opt) {
 			case 'b': {
 				int b = atoi(optarg);
@@ -369,12 +369,34 @@ static bool process_opts(int argc, char *argv[])
 				saturation = s / 100.;
 				break;
 			}
+			case 'y': {
+				y_weight = atof(optarg);
+				break;
+			}
 			default:
 				return false;
 		}
 	}
 
 	return true;
+}
+
+static double calc_color_goodness(const Color& src, const Color& gen)
+{
+	static double highest = 0.0;
+	double x = evaluate_color2(src, gen);
+	if (x <= 0) {
+		return 1.0;
+	}
+	if (x > highest) {
+		highest = x;
+		fprintf(stderr, "calc_color_goodness: highest=%4.1f\n", highest);
+	}
+#define MAX_X 1
+	if (x > MAX_X) {
+		x = MAX_X;
+	}
+	return pow(1.0 - x / MAX_X, 5.0);
 }
 
 int main(int argc, char *argv[])
@@ -400,6 +422,7 @@ int main(int argc, char *argv[])
 	int color0max;
 	int color1max;
 	int num_colors_per_block;
+	int num_global_colors = 0;
 
 	if (gfx_mode == HIRES) {
 		color0max = num_palette_colors - 0;
@@ -409,7 +432,8 @@ int main(int argc, char *argv[])
 	} else if (gfx_mode == MULTICOLOR) {
 		color0max = num_palette_colors - 0;
 		color1max = num_palette_colors - 0;
-		num_colors_per_block = 4;
+		num_colors_per_block = 3;
+		num_global_colors = 1;
 		block_width = 4;
 	} else {
 		fprintf(stderr, "Error: programming error!\n");
@@ -458,6 +482,7 @@ int main(int argc, char *argv[])
 	output.setBlockWidth(block_width);
 
 #define BLOCK_PASSES 2
+#if 1
 	for (int y = 0; y < output.getHeight(); ++y) {
 		//fprintf(stderr, "\r%d%%", (100 * y + output.getHeight() / 2) / output.getHeight());
 		for (int x = 0; x < output.getWidth(); ++x) {
@@ -467,9 +492,10 @@ int main(int argc, char *argv[])
 			Block& input_block = image->blockAt(x, y);
 			Block& output_block = output.blockAt(x, y);
 
-			input_block.setPaletteSize(num_colors_per_block);
-			input_block.setWidth(block_width);
-			output_block.setWidth(block_width);
+			output_block.setWidth(input_block.getWidth());
+
+			input_block.setPaletteSize(num_colors_per_block + num_global_colors);
+			output_block.setPaletteSize(num_colors_per_block + num_global_colors);
 
 			// XXX in multicolor mode, bit pattern 0b00 is used for the background color
 			input_block.setPalette(3, bgcolor);
@@ -520,12 +546,92 @@ int main(int argc, char *argv[])
 perfect:
 			//fprintf(stderr, "best colors for (%2d, %2d): %2d %2d\n", x, y, best_color_ix[0], best_color_ix[1]);
 
-			for (int c = 0; c < num_colors_per_block; ++c) {
+			for (int c = 0; c < num_colors_per_block + num_global_colors; ++c) {
 				input_block.setPalette(c, palette->colors[best_color_ix[c]]);
+				output_block.setPalette(c, palette->colors[best_color_ix[c]]);
 			}
 			generate(&input_block, &output_block);
 		}
 	}
+#else
+
+	// test each color for its goodness
+	// (experimental)
+	// (not very good yet, but may be good with tweaking)
+	{
+		for (int y = 0; y < image->getHeight(); ++y) {
+			for (int x = 0; x < image->getWidth(); ++x) {
+				Block& input_block = image->blockAt(x, y);
+				Block& output_block = output.blockAt(x, y);
+
+				output_block.setWidth(block_width);
+
+				input_block.setPaletteSize(num_colors_per_block + num_global_colors);
+				output_block.setPaletteSize(num_colors_per_block + num_global_colors);
+
+				// XXX in multicolor mode, bit pattern 0b00 is used for the background color
+				//input_block.setPalette(3, bgcolor);
+				//output_block.setPalette(3, bgcolor);
+
+				int best_color_ix[4] = { 0, 0, 0, bgcolorix };
+				double goodnesses[NUM_COLORS] = {};
+				for (int py = 0; py < input_block.getHeight(); ++py) {
+					for (int px = 0; px < input_block.getWidth(); ++px) {
+						const auto& color = input_block.pixelAt(px, py);
+						// mix 2 colors in different amounts
+						for (int ix0 = 0; ix0 < NUM_COLORS; ++ix0) {
+							if (exclusions[ix0]) {
+								continue;
+							}
+							const auto& testColor0 = palette->colors[ix0];
+							for (int ix1 = 0; ix1 < NUM_COLORS; ++ix1) {
+								if (ix0 == ix1 || exclusions[ix1]) {
+									continue;
+								}
+								const auto& testColor1 = palette->colors[ix1];
+								for (int mix = 0; mix < 9; ++mix) {
+									double t = mix / 9.;
+									Color testColor = (testColor0 * t) + (testColor1 * (1 - t));
+									double goodness = calc_color_goodness(color, testColor);
+									goodnesses[ix0] += pow(      t, 4.0) * goodness;
+									goodnesses[ix1] += pow((1 - t), 4.0) * goodness;
+								}
+							}
+						}
+					}
+				}
+				if (true) {
+					fprintf(stderr, "block (%2d, %2d) color goodnesses:", x, y);
+					for (int ix = 0; ix < NUM_COLORS; ++ix) {
+						fprintf(stderr, " %6.0f", goodnesses[ix]);
+					}
+					fprintf(stderr, "  best:");
+				}
+				for (int i = 0; i < num_colors_per_block; ++i) {
+					int best_color = 0;
+					for (int ix = 1; ix < NUM_COLORS; ++ix) {
+						if (goodnesses[ix] > goodnesses[best_color]) {
+							best_color = ix;
+						}
+					}
+					best_color_ix[i] = best_color;
+					goodnesses[best_color] = -INFINITY; // don't pick this as the next best color
+					fprintf(stderr, " %2d", best_color);
+				}
+				fprintf(stderr, "\n");
+				for (int c = 0; c < num_colors_per_block + num_global_colors; ++c) {
+					input_block.setPalette(c, palette->colors[best_color_ix[c]]);
+					output_block.setPalette(c, palette->colors[best_color_ix[c]]);
+				}
+
+				generate(&input_block, &output_block);
+				//refine_genetically(&input_block, &output_block, BLOCK_PASSES);
+			}
+		}
+
+	}
+
+#endif
 
 #if 1
 	// refine
@@ -544,3 +650,4 @@ perfect:
 
 	return 0;
 }
+

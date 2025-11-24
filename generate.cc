@@ -71,8 +71,8 @@ static bool refine_pixel(const Block *src, Block *gen, int x, int y, bool swap =
 	double best_score = INFINITY;
 	bool change = false;
 
-	for (int i = 0; i < src->getPaletteSize(); ++i) {
-		const Color& p = src->getPalette(i);
+	for (int i = 0; i < gen->getPaletteSize(); ++i) {
+		const Color& p = gen->getPalette(i);
 		pixel = p;
 		double score = evaluate_pixel(src, gen, x, y);
 		if (score < best_score) {
@@ -179,6 +179,7 @@ static bool refine_pixel(const Image *src, Image *gen, int x, int y)
 	int by = y / 8;
 
 	const Block& src_block = src->blockAt(bx, by);
+	Block& gen_block = gen->blockAt(bx, by);
 
 	Color& pixel = gen->pixelAt(x, y);
 
@@ -188,8 +189,8 @@ static bool refine_pixel(const Image *src, Image *gen, int x, int y)
 	bool change = false;
 
 	// try changing the color of just this pixel
-	for (int i = 0; i < src_block.getPaletteSize(); ++i) {
-		const Color& p = src_block.getPalette(i);
+	for (int i = 0; i < gen_block.getPaletteSize(); ++i) {
+		const Color& p = gen_block.getPalette(i);
 		pixel = p;
 		double score = evaluate_pixel(src, gen, x, y);
 		if (score < best_score) {
@@ -350,39 +351,39 @@ void generate(const Block *src, Block *gen)
 	// fill with alternating colors from the palette
 	const Coord *coords = get_shuffled_coords(src->getWidth(), src->getHeight());
 	for (int j = 0; j < src->getWidth()*src->getHeight(); ++j) {
-		gen->pixelAt(coords[j].x, coords[j].y) = src->getPalette(j % src->getPaletteSize());
+		gen->pixelAt(coords[j].x, coords[j].y) = gen->getPalette(j % gen->getPaletteSize());
 	}
 #elif 1
 	// dither
 	Color avg;
-	for (int c = 0; c < src->getPaletteSize(); ++c) {
-		avg += src->getPalette(c);
+	for (int c = 0; c < gen->getPaletteSize(); ++c) {
+		avg += gen->getPalette(c);
 	}
-	avg /= src->getPaletteSize();
+	avg /= gen->getPaletteSize();
 
 	Color bayer[2][2];
 
-	if (src->getPaletteSize() == 2) {
+	if (gen->getPaletteSize() == 2) {
 		const double weight = 0.75;
-		bayer[0][0] = (src->getPalette(1) - avg) * +1.000 * weight;
-		bayer[0][1] = (src->getPalette(0) - avg) * +0.333 * weight;
-		bayer[1][1] = (src->getPalette(1) - avg) * +0.333 * weight;
-		bayer[1][0] = (src->getPalette(0) - avg) * +1.000 * weight;
+		bayer[0][0] = (gen->getPalette(1) - avg) * +1.000 * weight;
+		bayer[0][1] = (gen->getPalette(0) - avg) * +0.333 * weight;
+		bayer[1][1] = (gen->getPalette(1) - avg) * +0.333 * weight;
+		bayer[1][0] = (gen->getPalette(0) - avg) * +1.000 * weight;
 	} else {
 		const double weight = 0.75;
-		bayer[0][0] = (src->getPalette(0) - avg) * +0.500 * weight;
-		bayer[0][1] = (src->getPalette(1) - avg) * +0.500 * weight;
-		bayer[1][1] = (src->getPalette(2) - avg) * +0.500 * weight;
-		bayer[1][0] = (src->getPalette(3) - avg) * +0.500 * weight;
+		bayer[0][0] = (gen->getPalette(0) - avg) * +0.500 * weight;
+		bayer[0][1] = (gen->getPalette(1) - avg) * +0.500 * weight;
+		bayer[1][1] = (gen->getPalette(2) - avg) * +0.500 * weight;
+		bayer[1][0] = (gen->getPalette(3) - avg) * +0.500 * weight;
 	}
 
 	for (int y = 0; y < 8; ++y) {
 		for (int x = 0; x < src->getWidth(); ++x) {
 			double best_score = INFINITY;
-			for (int c = 0; c < src->getPaletteSize(); ++c) {
-				double score = evaluate_color(src->pixelAt(x, y) + bayer[y%2][x%2], src->getPalette(c));
+			for (int c = 0; c < gen->getPaletteSize(); ++c) {
+				double score = evaluate_color(src->pixelAt(x, y) + bayer[y%2][x%2], gen->getPalette(c));
 				if (score < best_score) {
-					gen->pixelAt(x, y) = src->getPalette(c);
+					gen->pixelAt(x, y) = gen->getPalette(c);
 					best_score = score;
 				}
 			}
@@ -393,8 +394,8 @@ void generate(const Block *src, Block *gen)
 	for (int y = 0; y < src->getHeight(); ++y) {
 		for (int x = 0; x < src->getWidth(); ++x) {
 			double best_score = INFINITY;
-			for (int c = 0; c < src->getPaletteSize(); ++c) {
-				const Color& paletteColor = src->getPalette(c);
+			for (int c = 0; c < gen->getPaletteSize(); ++c) {
+				const Color& paletteColor = gen->getPalette(c);
 				double score = evaluate_color(src->pixelAt(x, y), paletteColor);
 				if (score < best_score) {
 					gen->pixelAt(x, y) = paletteColor;
@@ -407,7 +408,7 @@ void generate(const Block *src, Block *gen)
 	// fill with first color
 	for (int y = 0; y < src->getHeight(); ++y) {
 		for (int x = 0; x < src->getWidth(); ++x) {
-			gen->pixelAt(x, y) = src->getPalette(0);
+			gen->pixelAt(x, y) = gen->getPalette(0);
 		}
 	}
 #endif

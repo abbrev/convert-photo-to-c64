@@ -20,17 +20,38 @@ static double my_atan2(double q, double i)
 	return (q < 0) ? -r : r;                            // arctan(-z) = -arctan(z)
 }
 
+double evaluate_color2(const Color& src, const Color& gen)
+{
+#if 1
+#define R_WEIGHT (0.299)
+#define G_WEIGHT (0.587)
+#define B_WEIGHT (0.114)
+#else
+#define R_WEIGHT (1./3)
+#define G_WEIGHT (1./3)
+#define B_WEIGHT (1./3)
+#endif
+
+	return pow(R_WEIGHT * pow(abs(src.r() - gen.r()), 2.0) +
+		   G_WEIGHT * pow(abs(src.g() - gen.g()), 2.0) +
+		   B_WEIGHT * pow(abs(src.b() - gen.b()), 2.0), 0.5);
+}
+
+double y_weight = 6.0;
+
 double evaluate_color(const Color& src, const Color& gen)
 {
 #if 1
-#define Y_WEIGHT 8.0 // TODO adjust as needed
-	double  y_diff = (src.ydbdr_y()  - gen.ydbdr_y()) * Y_WEIGHT;
+	double src_ydbdr_y = src.ydbdr_y();
+	double gen_ydbdr_y = gen.ydbdr_y();
+	double  y_diff = (src_ydbdr_y  - gen_ydbdr_y) * (y_weight*1.333);
 
 	double src_ydbdr_db = src.ydbdr_db();
 	double src_ydbdr_dr = src.ydbdr_dr();
 	double gen_ydbdr_db = gen.ydbdr_db();
 	double gen_ydbdr_dr = gen.ydbdr_dr();
 
+#if 0
 	double src_theta = my_atan2(src_ydbdr_db, src_ydbdr_dr);
 	double gen_theta = my_atan2(gen_ydbdr_db, gen_ydbdr_dr);
 	double theta_diff = abs(src_theta - gen_theta);
@@ -41,6 +62,9 @@ double evaluate_color(const Color& src, const Color& gen)
 	}
 
 	double arc_factor = 1 + theta_diff - theta_diff/M_PI;
+#else
+	double arc_factor = 1;
+#endif
 #if 0
 	fprintf(stderr, "src=(%+5.3f, %+5.3f):%+5.3f gen=(%+5.3f, %+5.3f):%+5.3f diff=%+5.3f arc_factor=%+5.3f\n",
 	        src.ydbdr_db(), src.ydbdr_dr(), src_theta,
@@ -55,8 +79,39 @@ double evaluate_color(const Color& src, const Color& gen)
 	return ( y_diff *  y_diff) +
 	       ((db_diff * db_diff) + (dr_diff * dr_diff));
 #elif 1
+	double src_yuv_y = src.yuv_y();
+	double gen_yuv_y = gen.yuv_y();
+	double y_diff = (src_yuv_y  - gen_yuv_y) * (y_weight*0.5255);
+
+	double src_yuv_u = src.yuv_u();
+	double src_yuv_v = src.yuv_v();
+	double gen_yuv_u = gen.yuv_u();
+	double gen_yuv_v = gen.yuv_v();
+
+	double u_diff = (src_yuv_u - gen_yuv_u);
+	double v_diff = (src_yuv_v - gen_yuv_v);
+
+	return ( y_diff *  y_diff) +
+	       ((u_diff * u_diff) + (v_diff * v_diff));
+#elif 1
+	double src_ycbcr_y = src.ycbcr_y();
+	double gen_ycbcr_y = gen.ycbcr_y();
+	double y_diff = (src_ycbcr_y  - gen_ycbcr_y) * (y_weight*0.5);
+
+	double src_ycbcr_cb = src.ycbcr_cb();
+	double src_ycbcr_cr = src.ycbcr_cr();
+	double gen_ycbcr_cb = gen.ycbcr_cb();
+	double gen_ycbcr_cr = gen.ycbcr_cr();
+
+	double cb_diff = (src_ycbcr_cb - gen_ycbcr_cb);
+	double cr_diff = (src_ycbcr_cr - gen_ycbcr_cr);
+
+	return ( y_diff *  y_diff) +
+	       ((cb_diff * cb_diff) + (cr_diff * cr_diff));
+#elif 1
+#define L_POWER  3.0
 #define L_WEIGHT 1.0 // TODO adjust as needed
-	double l_diff = (src.oklab_l() - gen.oklab_l()) * L_WEIGHT;
+	double l_diff = (pow(src.oklab_l(), L_POWER) - pow(gen.oklab_l(), L_POWER)) * L_WEIGHT;
 	double a_diff = (src.oklab_a() - gen.oklab_a());
 	double b_diff = (src.oklab_b() - gen.oklab_b());
 
@@ -70,16 +125,6 @@ double evaluate_color(const Color& src, const Color& gen)
 
 	return (i_diff * i_diff) +
 	       (p_diff * p_diff) + (t_diff * t_diff);
-#elif 1
-	// calculate Euclidean distance in YUV color space (better than in RGB color space)
-
-#define Y_WEIGHT 1.5 // TODO adjust as needed
-	double y_diff = (src.y() - gen.y()) * Y_WEIGHT;
-	double u_diff = (src.u() - gen.u());
-	double v_diff = (src.v() - gen.v());
-
-	return (y_diff * y_diff) +
-	       (u_diff * u_diff) + (v_diff * v_diff);
 #else
 		return ((src.r() - gen.r()) * (src.r() - gen.r())*(R_WEIGHT) +
 		        (src.g() - gen.g()) * (src.g() - gen.g())*(G_WEIGHT) +
