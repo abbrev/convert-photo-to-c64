@@ -128,9 +128,22 @@ private:
 
 	void rgb_to_ydbdr() const {
 		// YDbDr
-		ydbdr.y  = +0.299*r_ +0.587*g_ +0.114*b_;
-		ydbdr.db = -0.450*r_ -0.883*g_ +1.333*b_;
-		ydbdr.dr = -1.333*r_ +1.116*g_ +0.217*b_;
+		// XXX YDbDr is linear, but I'm testing various gammas/inverse
+		// gammas. The intention here is to give more weight to darker
+		// colors.
+		//
+		// optimum value seems to be somewhere around 1.4 or 1.6; y
+		// weight can be decreased a bit too.
+		static const double gamma = 1/1.4;
+
+		double r = pow(r_, gamma);
+		double g = pow(g_, gamma);
+		double b = pow(b_, gamma);
+
+		ydbdr.y  = +0.299*r +0.587*g +0.114*b;
+		ydbdr.db = -0.450*r -0.883*g +1.333*b;
+		ydbdr.dr = -1.333*r +1.116*g +0.217*b;
+
 		ydbdr.initialized = true;
 	}
 
