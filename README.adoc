@@ -3,16 +3,24 @@
 == Overview
 
 This program reads a PNM image file on standard input and writes a PPM image file on standard output.
-The output image adheres to the color palette and pixel block restrictions of the Commodore 64's "hi-res" graphics mode.
+The output image adheres to the color palette and pixel block restrictions of the Commodore 64's "hi-res" or "multicolor" graphics modes.
 
 == Usage
 
 ....
-Usage: convert-photo-to-c64 [-d STRENGTH] <input.ppm >output.ppm
+Usage: convert-photo-to-c64 [OPTIONS] <INPUT.pnm >OUTPUT.pnm
 
-Where:
-  -d STRENGTH  Set the dither strength to STRENGTH%. Must not be less
-               than 0. Default is 400.
+Options:
+  -b COLOR       Set background color.
+  -d STRENGTH    Set dither strength (e.g. 400).
+  -m MODE        Set output mode ("hires" or "multicolor").
+  -p PALETTE     Load a palette ("colodore" or "pepto").
+  -P FILE        Load palette from a VICE palette file.
+  -i COLORLIST   Include colors (e.g., "0 1 5").
+  -x COLORLIST   Exclude colors.
+  -s SATURATION  Set saturation (0% = grayscale, 100% = full saturation).
+  -y WEIGHT      Set Y weight (default 4.0)
+  -h             Show this help page and exit.
 ....
 
 The default dither strength works reasonably well for most pictures, but some pictures may benefit from a strength higher or lower.
@@ -70,8 +78,7 @@ A smaller difference between the source results in a lower (better) score.
 The evaluator functions are at the heart of the algorithms.
 They determine which block is "best".
 
-Currently the evaluators use the linear RGB values in the source and generated images.
-However, other color spaces (such as YUV) may yield better results.
+Currently the evaluators use a modified YUV color space as this maps reasonably well to our perception of which colors are "close" to each other.
 
 Also, the pixel evaluator may be improved.
 It currently uses a 3x3 convolution filter to allow neighboring pixels to influence the score of a pixel.

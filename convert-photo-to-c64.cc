@@ -282,11 +282,36 @@ static bool *get_colors_from_list(const char *s)
 	return colors;
 }
 
+static const char *argv0;
+
+static void usage(void)
+{
+	fprintf(stderr,
+	        "Usage: %s [OPTIONS] <INPUT.pnm >OUTPUT.pnm\n"
+	        "\n"
+	        "Options:\n"
+	        "  -b COLOR       Set background color.\n"
+	        "  -d STRENGTH    Set dither strength (e.g. 400).\n"
+	        "  -m MODE        Set output mode (\"hires\" or \"multicolor\").\n"
+	        "  -p PALETTE     Load a palette (\"colodore\" or \"pepto\").\n"
+	        "  -P FILE        Load palette from a VICE palette file.\n"
+	        "  -i COLORLIST   Include colors (e.g., \"0 1 5\").\n"
+	        "  -x COLORLIST   Exclude colors.\n"
+	        "  -s SATURATION  Set saturation (0\% = grayscale, 100\% = full saturation).\n"
+	        "  -y WEIGHT      Set Y weight (default 4.0)\n"
+	        "  -h             Show this help page and exit.\n",
+	        argv0);
+}
+
 static bool process_opts(int argc, char *argv[])
 {
 	int opt;
-	while ((opt = getopt(argc, argv, "b:d:i:x:m:p:s:P:y:")) != -1) {
+	while ((opt = getopt(argc, argv, "hb:d:i:x:m:p:s:P:y:")) != -1) {
 		switch (opt) {
+			case 'h': {
+				usage();
+				exit(0);
+			}
 			case 'b': {
 				int b = atoi(optarg);
 				bgcolorix = b;
@@ -401,7 +426,10 @@ static double calc_color_goodness(const Color& src, const Color& gen)
 
 int main(int argc, char *argv[])
 {
+	argv0 = argv[0];
+
 	if (!process_opts(argc, argv)) {
+		usage();
 		exit(1);
 	}
 
