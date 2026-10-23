@@ -76,8 +76,9 @@ double evaluate_color(const Color& src, const Color& gen)
 	double db_diff = (src_ydbdr_db - gen_ydbdr_db) * arc_factor;
 	double dr_diff = (src_ydbdr_dr - gen_ydbdr_dr) * arc_factor;
 
-	return ( y_diff *  y_diff) +
-	       ((db_diff * db_diff) + (dr_diff * dr_diff));
+	return sqrt(( y_diff *  y_diff) +
+	            (db_diff * db_diff) +
+	            (dr_diff * dr_diff));
 #elif 1
 	double src_yuv_y = src.yuv_y();
 	double gen_yuv_y = gen.yuv_y();
@@ -138,7 +139,7 @@ double evaluate_color(const Color& src, const Color& gen)
 #define DITHER_KERNEL_SIZE 3
 static const int dither_pattern[DITHER_KERNEL_SIZE2] = {
 	1, 8, 1,
-	4, 1, 4,
+	4, 0, 4,
 	1, 8, 1,
 };
 

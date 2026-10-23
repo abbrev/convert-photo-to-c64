@@ -258,7 +258,7 @@ static Palette palettes[] = {
 };
 
 static Palette *palette = &palettes[0];
-static double dither_weight = 4.0;
+static double dither_weight = 2.0;
 static double saturation = 1.0;
 static bool exclusions[NUM_COLORS]; // colors to exclude
 
@@ -291,7 +291,7 @@ static void usage(void)
 	        "\n"
 	        "Options:\n"
 	        "  -b COLOR       Set background color.\n"
-	        "  -d STRENGTH    Set dither strength (e.g. 400).\n"
+	        "  -d STRENGTH    Set dither strength (default %.0f).\n"
 	        "  -m MODE        Set output mode (\"hires\" or \"multicolor\").\n"
 	        "  -p PALETTE     Load a palette (\"colodore\" or \"pepto\").\n"
 	        "  -P FILE        Load palette from a VICE palette file.\n"
@@ -300,7 +300,7 @@ static void usage(void)
 	        "  -s SATURATION  Set saturation (0%% = grayscale, 100%% = full saturation).\n"
 	        "  -y WEIGHT      Set Y weight (default %.1f)\n"
 	        "  -h             Show this help page and exit.\n",
-	        argv0, y_weight);
+	        argv0, dither_weight * 100, y_weight);
 }
 
 static bool process_opts(int argc, char *argv[])

@@ -12,7 +12,7 @@ Usage: convert-photo-to-c64 [OPTIONS] <INPUT.pnm >OUTPUT.pnm
 
 Options:
   -b COLOR       Set background color.
-  -d STRENGTH    Set dither strength (e.g. 400).
+  -d STRENGTH    Set dither strength (default 200).
   -m MODE        Set output mode ("hires" or "multicolor").
   -p PALETTE     Load a palette ("colodore" or "pepto").
   -P FILE        Load palette from a VICE palette file.
