@@ -37,7 +37,7 @@ double evaluate_color2(const Color& src, const Color& gen)
 		   B_WEIGHT * pow(abs(src.b() - gen.b()), 2.0), 0.5);
 }
 
-double y_weight = 4.0;
+double y_weight = 5.0;
 
 double evaluate_color(const Color& src, const Color& gen)
 {

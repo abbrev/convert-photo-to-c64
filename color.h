@@ -26,7 +26,6 @@ struct Color {
 		b_{other.b_},
 		ix_{other.ix_},
 		yuv{other.yuv},
-		ipt{other.ipt},
 		oklab{other.oklab},
 		ydbdr{other.ydbdr}
 	{}
@@ -53,7 +52,6 @@ struct Color {
 		b_ = other.b_;
 		ix_ = other.ix_;
 		yuv = other.yuv;
-		ipt = other.ipt;
 		oklab = other.oklab;
 		ydbdr = other.ydbdr;
 		return *this;
@@ -70,10 +68,6 @@ struct Color {
 	double yuv_y()  const { if (!yuv.initialized) { rgb_to_yuv(); } return yuv.y;  }
 	double yuv_u()  const { if (!yuv.initialized) { rgb_to_yuv(); } return yuv.u;  }
 	double yuv_v()  const { if (!yuv.initialized) { rgb_to_yuv(); } return yuv.v;  }
-
-	double ipt_i()  const { return ipt.i;  }
-	double ipt_p()  const { return ipt.p;  }
-	double ipt_t()  const { return ipt.t;  }
 
 	double oklab_l()  const { if (!oklab.initialized) { rgb_to_oklab(); } return oklab.l;  }
 	double oklab_a()  const { if (!oklab.initialized) { rgb_to_oklab(); } return oklab.a;  }
@@ -136,9 +130,9 @@ private:
 		// weight can be decreased a bit too.
 		static const double gamma = 1/1.4;
 
-		double r = pow(r_, gamma);
-		double g = pow(g_, gamma);
-		double b = pow(b_, gamma);
+		double r = r_; //pow(r_, gamma);
+		double g = g_; //pow(g_, gamma);
+		double b = b_; //pow(b_, gamma);
 
 		ydbdr.y  = +0.299*r +0.587*g +0.114*b;
 		ydbdr.db = -0.450*r -0.883*g +1.333*b;
@@ -154,9 +148,6 @@ private:
 		double y,u,v;
 		bool initialized = false;
 	} yuv;
-	struct {
-		double i,p,t;
-	} ipt;
 	mutable struct {
 		double l,a,b;
 		bool initialized = false;

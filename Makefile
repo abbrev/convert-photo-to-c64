@@ -19,26 +19,26 @@ clean:
 	rm -f convert-photo-to-c64
 
 IMAGES = \
-	afghangirl.png \
-	bar.png \
-	birds.png \
-	coffee.png \
-	desert.png \
-	dsotm.png \
-	eits.png \
-	escher.png \
-	gc.png \
-	holi2.png \
-	lena.png \
-	monarch.png \
-	nd.png \
-	peppers.png \
-	raytrace.png \
-	rr.png \
-	starry-night.png \
-	starwars2.png \
-	starwars.png \
-	webb.png \
+	examples/afghangirl.png \
+	examples/bar.png \
+	examples/birds.png \
+	examples/coffee.png \
+	examples/desert.png \
+	examples/dsotm.png \
+	examples/eits.png \
+	examples/escher.png \
+	examples/gc.png \
+	examples/holi2.png \
+	examples/lena.png \
+	examples/monarch.png \
+	examples/nd.png \
+	examples/peppers.png \
+	examples/raytrace.png \
+	examples/rr.png \
+	examples/starry-night.png \
+	examples/starwars2.png \
+	examples/starwars.png \
+	examples/webb.png \
 
 #MULTICOLOR_IMAGES = $(IMAGES:.png=.multicolor.png)
 MULTICOLOR_IMAGES = $(patsubst %.png,%.multicolor.png,$(IMAGES))

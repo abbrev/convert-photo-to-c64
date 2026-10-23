@@ -297,10 +297,10 @@ static void usage(void)
 	        "  -P FILE        Load palette from a VICE palette file.\n"
 	        "  -i COLORLIST   Include colors (e.g., \"0 1 5\").\n"
 	        "  -x COLORLIST   Exclude colors.\n"
-	        "  -s SATURATION  Set saturation (0\% = grayscale, 100\% = full saturation).\n"
-	        "  -y WEIGHT      Set Y weight (default 4.0)\n"
+	        "  -s SATURATION  Set saturation (0%% = grayscale, 100%% = full saturation).\n"
+	        "  -y WEIGHT      Set Y weight (default %.1f)\n"
 	        "  -h             Show this help page and exit.\n",
-	        argv0);
+	        argv0, y_weight);
 }
 
 static bool process_opts(int argc, char *argv[])
@@ -556,7 +556,7 @@ int main(int argc, char *argv[])
 						output_block.setPalette(2, palette->colors[color2ix]);
 
 						generate(&input_block, &output_block);
-						refine_genetically(&input_block, &output_block, BLOCK_PASSES);
+						//refine_genetically(&input_block, &output_block, BLOCK_PASSES);
 
 						double score = evaluate(&input_block, &output_block);
 						if (score < best_score) {
