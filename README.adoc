@@ -19,7 +19,7 @@ Options:
   -i COLORLIST   Include colors (e.g., "0 1 5").
   -x COLORLIST   Exclude colors.
   -s SATURATION  Set saturation (0% = grayscale, 100% = full saturation).
-  -y WEIGHT      Set Y weight (default 5.0)
+  -y WEIGHT      Set Y weight (default 4.0)
   -h             Show this help page and exit.
 ....
 
